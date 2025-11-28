@@ -11,6 +11,7 @@ const corsHeaders = {
 
 // Input validation schema
 const inputSchema = z.object({
+  apiKey: z.string().min(1, "API key is required"),
   subjects: z.array(z.object({
     id: z.string().uuid(),
     name: z.string().max(100),
@@ -124,7 +125,7 @@ serve(async (req) => {
       );
     }
 
-    const { subjects, topics, testDates, preferences, startDate, endDate, homeworks = [], topicAnalysis, aiNotes, events: rawEvents = [], timetableMode } = parsed.data;
+    const { apiKey, subjects, topics, testDates, preferences, startDate, endDate, homeworks = [], topicAnalysis, aiNotes, events: rawEvents = [], timetableMode } = parsed.data;
 
     const events = Array.from(
       new Map(rawEvents.map((evt: any) => [
@@ -1050,11 +1051,6 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large timetables
 
-    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
-    if (!OPEN_ROUTER_API_KEY) {
-      throw new Error("OPEN_ROUTER_API_KEY not configured");
-    }
-
     let openaiResult;
     try {
       const response = await fetch(
@@ -1063,8 +1059,8 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
-            "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
+            "Authorization": `Bearer ${apiKey}`,
+            "HTTP-Referer": "https://vistari.app"
           },
           body: JSON.stringify({
             model: "google/gemma-3n-e4b-it:free",

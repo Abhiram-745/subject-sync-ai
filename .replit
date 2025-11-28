@@ -41,3 +41,12 @@ externalPort = 80
 [[ports]]
 localPort = 8080
 externalPort = 8080
+
+[[ports]]
+localPort = 36153
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+VITE_OPEN_ROUTER_API_KEY = "${OPEN_ROUTER_API_KEY}"
