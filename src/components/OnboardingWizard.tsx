@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import HomeworkStep, { Homework } from "./onboarding/HomeworkStep";
 import TimetableDatesStep from "./onboarding/TimetableDatesStep";
 import GenerateStep from "./onboarding/GenerateStep";
 import WizardTour from "./tours/WizardTour";
+
+const WIZARD_STORAGE_KEY = "timetable-wizard-progress";
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -66,31 +68,74 @@ export interface StudyPreferences {
   free_period_times?: string[];
 }
 
+const defaultPreferences: StudyPreferences = {
+  daily_study_hours: 2,
+  day_time_slots: [
+    { day: "monday", startTime: "09:00", endTime: "17:00", enabled: true },
+    { day: "tuesday", startTime: "09:00", endTime: "17:00", enabled: true },
+    { day: "wednesday", startTime: "09:00", endTime: "17:00", enabled: true },
+    { day: "thursday", startTime: "09:00", endTime: "17:00", enabled: true },
+    { day: "friday", startTime: "09:00", endTime: "17:00", enabled: true },
+    { day: "saturday", startTime: "09:00", endTime: "17:00", enabled: true },
+    { day: "sunday", startTime: "09:00", endTime: "17:00", enabled: true },
+  ],
+  break_duration: 15,
+  session_duration: 45,
+  duration_mode: "flexible",
+};
+
+const loadSavedProgress = () => {
+  try {
+    const saved = localStorage.getItem(WIZARD_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error("Failed to load wizard progress:", e);
+  }
+  return null;
+};
+
 const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
-  const [step, setStep] = useState(1);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [topicAnalysis, setTopicAnalysis] = useState<any>(null);
-  const [testDates, setTestDates] = useState<TestDate[]>([]);
-  const [preferences, setPreferences] = useState<StudyPreferences>({
-    daily_study_hours: 2,
-    day_time_slots: [
-      { day: "monday", startTime: "09:00", endTime: "17:00", enabled: true },
-      { day: "tuesday", startTime: "09:00", endTime: "17:00", enabled: true },
-      { day: "wednesday", startTime: "09:00", endTime: "17:00", enabled: true },
-      { day: "thursday", startTime: "09:00", endTime: "17:00", enabled: true },
-      { day: "friday", startTime: "09:00", endTime: "17:00", enabled: true },
-      { day: "saturday", startTime: "09:00", endTime: "17:00", enabled: true },
-      { day: "sunday", startTime: "09:00", endTime: "17:00", enabled: true },
-    ],
-    break_duration: 15,
-    session_duration: 45,
-    duration_mode: "flexible",
-  });
-  const [homeworks, setHomeworks] = useState<Homework[]>([]);
-  const [timetableName, setTimetableName] = useState("My Study Timetable");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const savedProgress = loadSavedProgress();
+  
+  const [step, setStep] = useState(savedProgress?.step || 1);
+  const [subjects, setSubjects] = useState<Subject[]>(savedProgress?.subjects || []);
+  const [topics, setTopics] = useState<Topic[]>(savedProgress?.topics || []);
+  const [topicAnalysis, setTopicAnalysis] = useState<any>(savedProgress?.topicAnalysis || null);
+  const [testDates, setTestDates] = useState<TestDate[]>(savedProgress?.testDates || []);
+  const [preferences, setPreferences] = useState<StudyPreferences>(savedProgress?.preferences || defaultPreferences);
+  const [homeworks, setHomeworks] = useState<Homework[]>(savedProgress?.homeworks || []);
+  const [timetableName, setTimetableName] = useState(savedProgress?.timetableName || "My Study Timetable");
+  const [startDate, setStartDate] = useState(savedProgress?.startDate || "");
+  const [endDate, setEndDate] = useState(savedProgress?.endDate || "");
+
+  // Save progress to localStorage whenever state changes
+  const saveProgress = useCallback(() => {
+    const progress = {
+      step,
+      subjects,
+      topics,
+      topicAnalysis,
+      testDates,
+      preferences,
+      homeworks,
+      timetableName,
+      startDate,
+      endDate,
+    };
+    localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(progress));
+  }, [step, subjects, topics, topicAnalysis, testDates, preferences, homeworks, timetableName, startDate, endDate]);
+
+  useEffect(() => {
+    saveProgress();
+  }, [saveProgress]);
+
+  // Clear progress when timetable is created
+  const handleComplete = () => {
+    localStorage.removeItem(WIZARD_STORAGE_KEY);
+    onComplete();
+  };
 
   const totalSteps = 8;
   const progress = (step / totalSteps) * 100;
@@ -223,7 +268,7 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
                 timetableName={timetableName}
                 startDate={startDate}
                 endDate={endDate}
-                onComplete={onComplete}
+                onComplete={handleComplete}
               />
             </div>
           )}
