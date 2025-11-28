@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Gift } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import vistariLogo from "@/assets/vistari-logo.png";
 import PageTransition from "@/components/PageTransition";
 
@@ -19,111 +19,43 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
   const [resetEmail, setResetEmail] = useState("");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-  const [validatingEmail, setValidatingEmail] = useState(false);
 
-  const validateEmail = async (emailToValidate: string): Promise<{ isValid: boolean; isBanned: boolean; reason: string }> => {
+  const checkBannedEmail = async (emailToCheck: string): Promise<{ isBanned: boolean; reason: string }> => {
     try {
-      const response = await supabase.functions.invoke("validate-email", {
-        body: { email: emailToValidate },
-      });
-
-      if (response.error) {
-        console.error("Email validation error:", response.error);
-        return { isValid: true, isBanned: false, reason: "Validation skipped" };
-      }
-
-      return {
-        isValid: response.data?.isValid ?? true,
-        isBanned: response.data?.isBanned ?? false,
-        reason: response.data?.reason ?? "Unknown",
-      };
-    } catch (error) {
-      console.error("Email validation error:", error);
-      return { isValid: true, isBanned: false, reason: "Validation error" };
-    }
-  };
-
-  const processReferral = async (userId: string, email: string, validation: { isValid: boolean; reason: string }) => {
-    if (!referralCode.trim()) return;
-
-    try {
-      // Find the referral code
-      const { data: codeData, error: codeError } = await supabase
-        .from("referral_codes")
-        .select("id, user_id")
-        .eq("code", referralCode.toUpperCase().trim())
+      const { data: bannedData } = await supabase
+        .from("banned_users")
+        .select("id, reason")
+        .eq("email", emailToCheck.toLowerCase())
         .maybeSingle();
 
-      if (codeError || !codeData) {
-        toast.error("Invalid referral code", {
-          description: "The referral code you entered doesn't exist.",
-        });
-        return;
+      if (bannedData) {
+        return { isBanned: true, reason: bannedData.reason || "This email has been banned." };
       }
-
-      // Don't allow self-referral
-      if (codeData.user_id === userId) {
-        toast.error("Invalid referral", {
-          description: "You cannot use your own referral code.",
-        });
-        return;
-      }
-
-      // Record the referral
-      const { error: insertError } = await supabase.from("referral_uses").insert({
-        referral_code_id: codeData.id,
-        referred_user_id: userId,
-        is_valid: validation.isValid,
-        validation_reason: validation.reason,
-      });
-
-      if (insertError) {
-        console.error("Error inserting referral:", insertError);
-        return;
-      }
-
-      // Check if referrer should get a reward (only for valid emails)
-      if (validation.isValid) {
-        await supabase.rpc("check_and_grant_referral_premium", {
-          _user_id: codeData.user_id,
-        });
-        toast.success("Referral recorded!", {
-          description: "Your signup was recorded for your friend's referral rewards.",
-        });
-      } else {
-        toast.warning("Referral not eligible", {
-          description: validation.reason,
-        });
-      }
+      return { isBanned: false, reason: "" };
     } catch (error) {
-      console.error("Error processing referral:", error);
+      console.error("Ban check error:", error);
+      return { isBanned: false, reason: "" };
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setValidatingEmail(true);
 
-    // Step 1: Validate email and check if banned
-    const validation = await validateEmail(email);
-    setValidatingEmail(false);
-
-    // Block signup if email is banned
-    if (validation.isBanned) {
+    // Check if email is banned
+    const banCheck = await checkBannedEmail(email);
+    if (banCheck.isBanned) {
       setLoading(false);
       toast.error("Account creation blocked", {
-        description: validation.reason,
+        description: banCheck.reason,
       });
       return;
     }
 
-    // Step 2: Create the account (allow even for suspicious emails, just don't count referral)
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -138,27 +70,14 @@ const Auth = () => {
       return;
     }
 
-    // Step 3: Process referral if user was created
-    if (data.user && referralCode.trim()) {
-      await processReferral(data.user.id, email, validation);
-    }
-
     setLoading(false);
-    
-    if (validation.isValid || !referralCode.trim()) {
-      toast.success("Account created!", {
-        description: "You can now log in.",
-      });
-    } else {
-      toast.success("Account created!", {
-        description: "However, your email isn't eligible for referral rewards.",
-      });
-    }
+    toast.success("Account created!", {
+      description: "You can now log in.",
+    });
     
     setEmail("");
     setPassword("");
     setFullName("");
-    setReferralCode("");
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -367,30 +286,13 @@ const Auth = () => {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="referral-code" className="flex items-center gap-2">
-                      <Gift className="h-4 w-4 text-primary" />
-                      Referral Code (Optional)
-                    </Label>
-                    <Input
-                      id="referral-code"
-                      type="text"
-                      placeholder="VIS12345"
-                      value={referralCode}
-                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      className="font-mono tracking-wider"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Got a code from a friend? Enter it here!
-                    </p>
-                  </div>
                   <Button
                     type="submit"
                     className="w-full bg-gradient-primary hover:opacity-90"
                     disabled={loading}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {validatingEmail ? "Validating email..." : "Create Account"}
+                    Create Account
                   </Button>
                 </form>
               </TabsContent>
