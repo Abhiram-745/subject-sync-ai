@@ -6,8 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,32 +14,24 @@ serve(async (req) => {
   try {
     const { text, subjectName, images } = await req.json();
 
-    // Build user message content array for vision API
-    const contentParts: any[] = [];
-    
-    // Add text instruction
-    let textPrompt = `Subject: ${subjectName}\n\n`;
-    if (text) {
-      textPrompt += `Extract topics from this text:\n${text}\n\n`;
-    }
-    if (images && Array.isArray(images) && images.length > 0) {
-      textPrompt += `Extract topics from the provided ${images.length} image(s).`;
-    }
-    
-    contentParts.push({ type: "text", text: textPrompt });
-    
-    // Add images if provided
-    if (images && Array.isArray(images) && images.length > 0) {
-      for (const image of images) {
-        contentParts.push({
-          type: "image_url",
-          image_url: { url: image }
-        });
-      }
+    // Note: Gemma 3n is a text-only model - images are not supported
+    if (images && Array.isArray(images) && images.length > 0 && !text) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Image-only topic extraction is not available with the current AI model. Please provide text or typed topic names instead.",
+          topics: []
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    // Build text prompt for Gemma (text-only model)
+    let contentParts = `Subject: ${subjectName}\n\n`;
+    if (text) {
+      contentParts += `Extract topics from this text:\n${text}`;
     }
 
     const systemPrompt = `You are an expert at extracting study topics from images and text.

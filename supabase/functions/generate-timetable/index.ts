@@ -9,8 +9,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
 // Input validation schema
 const inputSchema = z.object({
   subjects: z.array(z.object({

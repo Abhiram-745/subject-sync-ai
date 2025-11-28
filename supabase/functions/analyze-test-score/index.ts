@@ -7,8 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -64,11 +62,7 @@ Be constructive, specific, and focused on GCSE exam success. Return ONLY valid J
   "recommendations": ["recommendation 1", "recommendation 2", ...]
 }`;
 
-    console.log("Calling OpenAI for test score analysis...");
-
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured");
-    }
+    console.log("Calling AI for test score analysis...");
 
     const systemPrompt = "You are an expert GCSE tutor analyzing student test performance. Provide specific, actionable feedback. Always return valid JSON.";
 

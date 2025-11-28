@@ -7,8 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -149,10 +147,6 @@ Format your response as JSON with this structure:
   },
   "overallSummary": "string"
 }`;
-
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured");
-    }
 
     const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
     if (!OPEN_ROUTER_API_KEY) {

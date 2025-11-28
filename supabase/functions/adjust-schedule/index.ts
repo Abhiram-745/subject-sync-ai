@@ -6,8 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -212,11 +210,7 @@ Return ONLY valid JSON:
 5. Write clear summary explaining what changed and why`;
 
 
-    console.log('Calling OpenAI for schedule adjustment...');
-
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured");
-    }
+    console.log('Calling AI for schedule adjustment...');
 
     const systemPrompt = 'You are an expert study scheduling assistant. Always return valid JSON.';
 

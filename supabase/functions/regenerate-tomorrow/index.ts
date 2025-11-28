@@ -7,8 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -377,11 +375,7 @@ Return ONLY valid JSON:
 12:30 - Topic 3 (medium priority) - 60 min
 = 3 topics + 1 homework + 1 strategic break`;
 
-    console.log('Calling OpenAI to generate tomorrow\'s schedule...');
-
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured");
-    }
+    console.log('Calling AI to generate tomorrow\'s schedule...');
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
