@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Plus, Sparkles, Target, Trophy, Calendar, CheckCircle2, Gift } from "lucide-react";
+import { Plus, Sparkles, Target, Trophy, Calendar, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import OnboardingWizard from "@/components/OnboardingWizard";
@@ -22,7 +22,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import WelcomeModal from "@/components/WelcomeModal";
 import GuidedOnboarding from "@/components/tours/GuidedOnboarding";
 import PageTransition from "@/components/PageTransition";
-import ReferralCard from "@/components/ReferralCard";
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -41,23 +41,6 @@ const Dashboard = () => {
   }>>([]);
   const { data: userRole } = useUserRole();
 
-  // Scroll to referrals section if hash is present - works regardless of hasData
-  useEffect(() => {
-    if (location.hash === "#referrals" && !loading) {
-      // Use retry logic to ensure element exists in DOM
-      const scrollToReferrals = (attempts = 0) => {
-        const element = document.getElementById("referrals-section");
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else if (attempts < 15) {
-          setTimeout(() => scrollToReferrals(attempts + 1), 150);
-        }
-      };
-      requestAnimationFrame(() => {
-        setTimeout(() => scrollToReferrals(), 100);
-      });
-    }
-  }, [location.hash, loading]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -306,21 +289,6 @@ const Dashboard = () => {
                 return null;
               })}
 
-            {/* Referral Section - Early Supporters */}
-            <div id="referrals-section" className="space-y-6 scroll-mt-24">
-              <div className="section-header">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center shadow-md animate-pulse">
-                  <Gift className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="section-title">🎁 Early Supporters Event</h2>
-                  <p className="text-sm text-muted-foreground">Refer friends & earn extra timetable slots!</p>
-                </div>
-              </div>
-              <div className="max-w-lg">
-                <ReferralCard />
-              </div>
-            </div>
 
             {/* Pricing Cards Section */}
             <div className="py-16 relative overflow-hidden">
