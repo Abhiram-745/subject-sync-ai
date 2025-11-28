@@ -1,95 +1,117 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles, TrendingUp, AlertCircle, Plus, X } from "lucide-react";
+import { Loader2, Sparkles, TrendingUp, AlertCircle, Plus, X, MessageSquare } from "lucide-react";
 import { Subject, Topic } from "../OnboardingWizard";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 
 interface DifficultTopicsStepProps {
   subjects: Subject[];
   topics: Topic[];
+  setTopics: (topics: Topic[]) => void;
   onAnalysisComplete: (analysis: any) => void;
   onSkip: () => void;
 }
 
-const DifficultTopicsStep = ({ subjects, topics, onAnalysisComplete, onSkip }: DifficultTopicsStepProps) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
-  const [difficultTopics, setDifficultTopics] = useState<string[]>([]);
+interface FocusTopic {
+  name: string;
+  subjectId: string;
+  confidence: number;
+  difficulties: string;
+}
+
+const DifficultTopicsStep = ({ subjects, topics, setTopics, onAnalysisComplete, onSkip }: DifficultTopicsStepProps) => {
+  const [focusTopics, setFocusTopics] = useState<FocusTopic[]>([]);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedTopic, setSelectedTopic] = useState("");
+  const [editingTopic, setEditingTopic] = useState<FocusTopic | null>(null);
+  const [tempConfidence, setTempConfidence] = useState(5);
+  const [tempDifficulties, setTempDifficulties] = useState("");
 
   const getSubjectName = (subjectId: string) => {
     const index = parseInt(subjectId);
     return subjects[index]?.name || "";
   };
 
-  const analyzeTopics = async () => {
-    if (difficultTopics.length === 0) {
-      toast.error("Please select topics you find difficult or want to focus on");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    try {
-      const selectedTopicsData = topics
-        .filter(t => difficultTopics.includes(t.name))
-        .map(t => ({
-          ...t,
-          subject: getSubjectName(t.subject_id)
-        }));
-
-      const { data, error } = await supabase.functions.invoke('analyze-difficulty', {
-        body: { topics: selectedTopicsData, focusTopics: difficultTopics }
-      });
-
-      if (error) throw error;
-
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      setAnalysis(data);
-      onAnalysisComplete(data);
-      toast.success("Analysis complete!");
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast.error("Failed to analyze topics. Please try again.");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const getPriorityColor = (score: number) => {
-    if (score >= 8) return "destructive";
-    if (score >= 5) return "secondary";
-    return "outline";
-  };
-
   const availableTopics = topics.filter(
-    (t) => t.subject_id === selectedSubject && !difficultTopics.includes(t.name)
+    (t) => t.subject_id === selectedSubject && !focusTopics.some(ft => ft.name === t.name)
   );
 
-  const addDifficultTopic = () => {
+  const addFocusTopic = () => {
     if (selectedTopic) {
-      setDifficultTopics([...difficultTopics, selectedTopic]);
-      setSelectedTopic("");
-      toast.success("Topic added to focus list");
+      const topic = topics.find(t => t.name === selectedTopic && t.subject_id === selectedSubject);
+      if (topic) {
+        const newFocusTopic: FocusTopic = {
+          name: topic.name,
+          subjectId: topic.subject_id,
+          confidence: topic.confidence || 5,
+          difficulties: topic.difficulties || ""
+        };
+        setFocusTopics([...focusTopics, newFocusTopic]);
+        setSelectedTopic("");
+        toast.success("Topic added - click on it to add notes about why you struggle");
+      }
     }
   };
 
-  const removeDifficultTopic = (topicName: string) => {
-    setDifficultTopics(difficultTopics.filter((t) => t !== topicName));
+  const removeFocusTopic = (topicName: string) => {
+    setFocusTopics(focusTopics.filter((t) => t.name !== topicName));
   };
 
-  const getTopicSubject = (topicName: string) => {
-    const topic = topics.find((t) => t.name === topicName);
-    return topic ? getSubjectName(topic.subject_id) : "";
+  const handleTopicClick = (topic: FocusTopic) => {
+    setEditingTopic(topic);
+    setTempConfidence(topic.confidence);
+    setTempDifficulties(topic.difficulties);
+  };
+
+  const handleSaveNotes = () => {
+    if (editingTopic) {
+      const updatedFocusTopics = focusTopics.map(ft => 
+        ft.name === editingTopic.name 
+          ? { ...ft, confidence: tempConfidence, difficulties: tempDifficulties }
+          : ft
+      );
+      setFocusTopics(updatedFocusTopics);
+      
+      // Also update the main topics array
+      const updatedTopics = topics.map(t =>
+        t.name === editingTopic.name && t.subject_id === editingTopic.subjectId
+          ? { ...t, confidence: tempConfidence, difficulties: tempDifficulties }
+          : t
+      );
+      setTopics(updatedTopics);
+      
+      setEditingTopic(null);
+      toast.success("Notes saved! AI will use this when creating your timetable");
+    }
+  };
+
+  const handleContinue = () => {
+    // Create analysis data from focus topics
+    if (focusTopics.length > 0) {
+      const analysisData = {
+        priorities: focusTopics.map(ft => ({
+          topic_name: ft.name,
+          priority_score: Math.max(1, 10 - ft.confidence), // Lower confidence = higher priority
+          reasoning: ft.difficulties || "User marked as difficult"
+        })),
+        difficult_topics: focusTopics.filter(ft => ft.difficulties).map(ft => ({
+          topic_name: ft.name,
+          reason: ft.difficulties,
+          study_suggestion: `Focus on understanding the concepts you find challenging: ${ft.difficulties}`
+        }))
+      };
+      onAnalysisComplete(analysisData);
+    } else {
+      onAnalysisComplete(null);
+    }
+    onSkip();
   };
 
   return (
@@ -97,213 +119,218 @@ const DifficultTopicsStep = ({ subjects, topics, onAnalysisComplete, onSkip }: D
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-primary">AI Analysis</span>
+          <span className="text-sm font-medium text-primary">Focus Topics</span>
         </div>
-        <h3 className="text-2xl font-bold">Study Priority Analysis</h3>
+        <h3 className="text-2xl font-bold">Topics You Find Difficult</h3>
         <p className="text-muted-foreground">
-          Select topics you find difficult or want to focus on
+          Select topics you struggle with and tell us why - AI will prioritize these in your timetable
         </p>
       </div>
 
-      {!analysis && (
-        <Card className="border-primary/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-primary" />
-              Topics I Find Difficult or Want to Focus On
-            </CardTitle>
-            <CardDescription>
-              Select topics that are challenging or require extra attention. AI will analyze these to optimize your study schedule.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+      <Card className="border-primary/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-primary" />
+            Add Topics You Struggle With
+          </CardTitle>
+          <CardDescription>
+            Click on any topic after adding to explain what you find difficult about it
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject-select">Select Subject</Label>
+              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <SelectTrigger id="subject-select">
+                  <SelectValue placeholder="Choose a subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject, index) => (
+                    <SelectItem key={index} value={index.toString()}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedSubject && (
               <div className="space-y-2">
-                <Label htmlFor="subject-select">Select Subject</Label>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger id="subject-select">
-                    <SelectValue placeholder="Choose a subject" />
+                <Label htmlFor="topic-select">Select Topic</Label>
+                <Select
+                  value={selectedTopic}
+                  onValueChange={setSelectedTopic}
+                  disabled={availableTopics.length === 0}
+                >
+                  <SelectTrigger id="topic-select">
+                    <SelectValue
+                      placeholder={
+                        availableTopics.length === 0
+                          ? "No available topics"
+                          : "Choose a topic"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {subjects.map((subject, index) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        {subject.name}
+                    {availableTopics.map((topic, index) => (
+                      <SelectItem key={index} value={topic.name}>
+                        {topic.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {selectedSubject && (
-                <div className="space-y-2">
-                  <Label htmlFor="topic-select">Select Topic</Label>
-                  <Select
-                    value={selectedTopic}
-                    onValueChange={setSelectedTopic}
-                    disabled={availableTopics.length === 0}
-                  >
-                    <SelectTrigger id="topic-select">
-                      <SelectValue
-                        placeholder={
-                          availableTopics.length === 0
-                            ? "No available topics"
-                            : "Choose a topic"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableTopics.map((topic, index) => (
-                        <SelectItem key={index} value={topic.name}>
-                          {topic.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            <Button
-              type="button"
-              onClick={addDifficultTopic}
-              disabled={!selectedTopic}
-              className="w-full"
-              variant="outline"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add to Focus List
-            </Button>
-
-            {difficultTopics.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <Label>Your Focus Topics ({difficultTopics.length})</Label>
-                <div className="space-y-2">
-                  {difficultTopics.map((topicName, index) => {
-                    const topic = topics.find((t) => t.name === topicName);
-                    return (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium">{topicName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {getTopicSubject(topicName)}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeDifficultTopic(topicName)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
 
-      {isAnalyzing && (
-        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Analyzing {difficultTopics.length} focus topics...</p>
-        </div>
-      )}
+          <Button
+            type="button"
+            onClick={addFocusTopic}
+            disabled={!selectedTopic}
+            className="w-full"
+            variant="outline"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add to Focus List
+          </Button>
 
-      {analysis && (
-        <div className="space-y-6">
-          {/* Difficult Topics Results */}
-          {analysis.difficult_topics && analysis.difficult_topics.length > 0 && (
-            <Card className="border-destructive/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-destructive" />
-                  Difficult Topics (Needs Extra Focus)
-                </CardTitle>
-                <CardDescription>
-                  These topics have been identified as challenging and will receive more study time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {analysis.difficult_topics.map((topic: any, index: number) => (
-                  <div key={index} className="p-4 bg-muted rounded-lg space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium text-destructive">{topic.topic_name}</p>
-                        <p className="text-sm text-muted-foreground mt-1">{topic.reason}</p>
+          {focusTopics.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <Label>Your Focus Topics ({focusTopics.length})</Label>
+              <p className="text-xs text-muted-foreground text-amber-600">
+                💡 Click on any topic to add notes about why you find it difficult
+              </p>
+              <div className="space-y-2">
+                {focusTopics.map((topic, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors border-2 border-transparent hover:border-primary/30"
+                    onClick={() => handleTopicClick(topic)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{topic.name}</p>
+                        {topic.difficulties && (
+                          <MessageSquare className="h-4 w-4 text-primary" />
+                        )}
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        {getSubjectName(topic.subjectId)}
+                      </p>
+                      {topic.confidence < 10 && (
+                        <Badge variant="outline" className="text-xs mt-1">
+                          Confidence: {topic.confidence}/10
+                        </Badge>
+                      )}
+                      {topic.difficulties && (
+                        <p className="text-xs text-primary italic mt-1 line-clamp-1">
+                          "{topic.difficulties}"
+                        </p>
+                      )}
                     </div>
-                    <div className="p-3 bg-background/50 rounded border border-border">
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Study Suggestion:</p>
-                      <p className="text-sm">{topic.study_suggestion}</p>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFocusTopic(topic.name);
+                      }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
+        </CardContent>
+      </Card>
 
-          {/* Priority Scores Section */}
-          {analysis.priorities && analysis.priorities.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Study Priorities
-                </CardTitle>
-                <CardDescription>
-                  Priority scores help allocate study time effectively (1=low priority, 10=high priority)
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {analysis.priorities
-                  .sort((a: any, b: any) => b.priority_score - a.priority_score)
-                  .map((item: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium">{item.topic_name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{item.reasoning}</p>
-                      </div>
-                      <Badge variant={getPriorityColor(item.priority_score)} className="ml-4">
-                        Priority: {item.priority_score}/10
-                      </Badge>
-                    </div>
-                  ))}
-              </CardContent>
-            </Card>
-          )}
+      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+        <p className="text-sm text-muted-foreground">
+          <Sparkles className="h-4 w-4 inline mr-2" />
+          AI will allocate more study time to topics you mark as difficult and use your notes to create better study suggestions
+        </p>
+      </div>
 
-          <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-            <p className="text-sm text-muted-foreground">
-              <Sparkles className="h-4 w-4 inline mr-2" />
-              This analysis will be used to create a smart timetable that allocates more time to challenging topics
-            </p>
+      <div className="flex gap-3">
+        <Button
+          onClick={() => {
+            onAnalysisComplete(null);
+            onSkip();
+          }}
+          variant="outline"
+          className="flex-1"
+        >
+          Skip this step
+        </Button>
+        <Button
+          onClick={handleContinue}
+          className="flex-1 bg-gradient-primary hover:opacity-90"
+        >
+          Continue
+        </Button>
+      </div>
+
+      {/* Notes Dialog */}
+      <Dialog open={!!editingTopic} onOpenChange={() => setEditingTopic(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              {editingTopic?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Tell us why you find this topic difficult - AI will use this to help you better
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-3">
+              <Label>How confident are you with this topic?</Label>
+              <div className="px-2">
+                <Slider
+                  value={[tempConfidence]}
+                  onValueChange={(v) => setTempConfidence(v[0])}
+                  max={10}
+                  min={1}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between mt-2">
+                  <span className="text-xs text-muted-foreground">Not confident</span>
+                  <span className="text-lg font-bold text-primary">{tempConfidence}/10</span>
+                  <span className="text-xs text-muted-foreground">Very confident</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>What do you find difficult about this topic?</Label>
+              <Textarea
+                placeholder="e.g., I struggle with remembering the formulas... The concepts are confusing when... I always make mistakes with..."
+                value={tempDifficulties}
+                onChange={(e) => setTempDifficulties(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                This helps AI understand your specific challenges and create better study suggestions
+              </p>
+            </div>
           </div>
-        </div>
-      )}
 
-      {!analysis && !isAnalyzing && (
-        <div className="flex gap-3">
-          <Button
-            onClick={onSkip}
-            variant="outline"
-            className="flex-1"
-          >
-            Skip this step
-          </Button>
-          <Button
-            onClick={analyzeTopics}
-            className="flex-1 bg-gradient-primary hover:opacity-90"
-            disabled={difficultTopics.length === 0}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Analyze {difficultTopics.length} Focus Topics
-          </Button>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTopic(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNotes}>
+              Save Notes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

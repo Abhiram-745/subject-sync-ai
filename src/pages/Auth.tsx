@@ -50,18 +50,35 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       toast.error(error.message);
-    } else {
-      navigate("/dashboard");
+      return;
     }
+
+    // Check if user is banned
+    if (data.user) {
+      const { data: bannedData } = await supabase
+        .from("banned_users")
+        .select("id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      if (bannedData) {
+        await supabase.auth.signOut();
+        setLoading(false);
+        toast.error("Your account has been banned by an administrator. Please contact support.");
+        return;
+      }
+    }
+
+    setLoading(false);
+    navigate("/dashboard");
   };
 
   const handlePasswordReset = async (e: React.FormEvent) => {

@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Plus, Home, LogOut, Settings, User, Sparkles, BookOpen, Users, Moon, Sun, ClipboardList, CalendarClock, TrendingUp, Menu, Brain, HelpCircle } from "lucide-react";
+import { Calendar, Plus, Home, LogOut, Settings, User, Sparkles, BookOpen, Users, Moon, Sun, ClipboardList, CalendarClock, TrendingUp, Menu, Brain, HelpCircle, Crown } from "lucide-react";
 import { toast } from "sonner";
 import ProfileSettings from "./ProfileSettings";
 import { useUserRole, useUsageLimits } from "@/hooks/useUserRole";
@@ -49,6 +49,7 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
   const [showTutorialConfirm, setShowTutorialConfirm] = useState(false);
   const [profile, setProfile] = useState<{ full_name?: string; avatar_url?: string; id: string } | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [isAdmin, setIsAdmin] = useState(false);
   const { data: userRole } = useUserRole();
   const { data: usageLimits } = useUsageLimits();
   const isOnDashboard = location.pathname === "/";
@@ -87,6 +88,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
   const loadProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      // Check if admin
+      setIsAdmin(user.email === "abhiramkakarla1@gmail.com");
+      
       const { data } = await supabase
         .from("profiles")
         .select("full_name, avatar_url")
@@ -466,6 +470,18 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
                 <Brain className="h-3.5 w-3.5" />
                 <span className="text-xs font-medium">AI Insights</span>
               </Button>
+
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/admin")}
+                  className="gap-1 px-2 hover:bg-yellow-500/20 hover:text-yellow-600 transition-all"
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">Admin</span>
+                </Button>
+              )}
             </div>
 
             {/* Right Side Actions */}

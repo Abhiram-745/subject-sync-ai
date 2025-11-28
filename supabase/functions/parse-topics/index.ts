@@ -77,12 +77,11 @@ Return ONLY valid JSON in this format:
           "Authorization": `Bearer ${LOVABLE_API_KEY}`
         },
         body: JSON.stringify({
-          model: "openai/gpt-5-mini",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: contentParts }
           ],
-          max_completion_tokens: 2048,
         }),
       }
     );
@@ -90,6 +89,20 @@ Return ONLY valid JSON in this format:
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please contact support." }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       throw new Error(`AI gateway request failed: ${response.status}`);
     }
 

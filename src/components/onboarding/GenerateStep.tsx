@@ -22,6 +22,9 @@ interface GenerateStepProps {
   homeworks: Homework[];
   topicAnalysis?: any;
   timetableMode: string | null;
+  timetableName?: string;
+  startDate?: string;
+  endDate?: string;
   onComplete: () => void;
 }
 
@@ -33,20 +36,24 @@ const GenerateStep = ({
   homeworks,
   topicAnalysis,
   timetableMode,
+  timetableName: initialName,
+  startDate: initialStartDate,
+  endDate: initialEndDate,
   onComplete,
 }: GenerateStepProps) => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [generationStage, setGenerationStage] = useState<string>("");
-  const [timetableName, setTimetableName] = useState("My Study Timetable");
+  
   // Default dates: start tomorrow, end in 1 week
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const oneWeekLater = new Date(tomorrow);
   oneWeekLater.setDate(oneWeekLater.getDate() + 7);
   
-  const [startDate, setStartDate] = useState(tomorrow.toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(oneWeekLater.toISOString().split('T')[0]);
+  const [timetableName, setTimetableName] = useState(initialName || "My Study Timetable");
+  const [startDate, setStartDate] = useState(initialStartDate || tomorrow.toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(initialEndDate || oneWeekLater.toISOString().split('T')[0]);
   const [showPaywall, setShowPaywall] = useState(false);
   const [feasibility, setFeasibility] = useState<FeasibilityResult | null>(null);
   const [events, setEvents] = useState<any[]>([]);

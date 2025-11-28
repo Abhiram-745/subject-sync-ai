@@ -21,6 +21,7 @@ import Reflections from "./pages/Reflections";
 import NotFound from "./pages/NotFound";
 import LogoGenerator from "./pages/LogoGenerator";
 import ImportAccount from "./pages/ImportAccount";
+import Admin from "./pages/Admin";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import TourManager from "./components/tours/TourManager";
 
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/reflections" element={<Reflections />} />
           <Route path="/timetable/:id" element={<TimetableView />} />
           <Route path="/import-account" element={<ImportAccount />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

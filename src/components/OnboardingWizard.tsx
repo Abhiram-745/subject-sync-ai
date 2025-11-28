@@ -11,6 +11,7 @@ import DifficultTopicsStep from "./onboarding/DifficultTopicsStep";
 import TestDatesStep from "./onboarding/TestDatesStep";
 import PreferencesStep from "./onboarding/PreferencesStep";
 import HomeworkStep, { Homework } from "./onboarding/HomeworkStep";
+import TimetableDatesStep from "./onboarding/TimetableDatesStep";
 import GenerateStep from "./onboarding/GenerateStep";
 
 interface OnboardingWizardProps {
@@ -86,8 +87,11 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
     duration_mode: "flexible",
   });
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
+  const [timetableName, setTimetableName] = useState("My Study Timetable");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const totalSteps = 7;
+  const totalSteps = 8;
   const progress = (step / totalSteps) * 100;
 
   const handleNext = () => {
@@ -117,10 +121,11 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
   const stepTitles = [
     "Your GCSE Subjects",
     "Topics You're Studying",
-    "AI Topic Analysis",
+    "Topics You Find Difficult",
     "Upcoming Test Dates",
     "Study Preferences",
     "Homework Assignments",
+    "Timetable Period",
     "Generate Timetable",
   ];
 
@@ -145,11 +150,12 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
         <CardDescription>
           {step === 1 && "Add the subjects you're taking and select the study mode for each"}
           {step === 2 && "Tell us which topics you're currently studying"}
-          {step === 3 && "AI will analyze your topics to prioritize difficult areas"}
+          {step === 3 && "Select topics you find difficult and tell us why"}
           {step === 4 && "When are your tests scheduled?"}
           {step === 5 && "Set your study preferences"}
           {step === 6 && "Add any homework assignments to include in your timetable"}
-          {step === 7 && "Review and generate your personalized timetable"}
+          {step === 7 && "Choose when your timetable should start and end"}
+          {step === 8 && "Review and generate your personalized timetable"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -162,7 +168,8 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
         {step === 3 && (
           <DifficultTopicsStep 
             subjects={subjects} 
-            topics={topics} 
+            topics={topics}
+            setTopics={setTopics}
             onAnalysisComplete={setTopicAnalysis}
             onSkip={handleNext}
           />
@@ -177,6 +184,16 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
           <HomeworkStep subjects={subjects} homeworks={homeworks} setHomeworks={setHomeworks} />
         )}
         {step === 7 && (
+          <TimetableDatesStep
+            timetableName={timetableName}
+            setTimetableName={setTimetableName}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+          />
+        )}
+        {step === 8 && (
           <GenerateStep
             subjects={subjects}
             topics={topics}
@@ -185,31 +202,48 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
             homeworks={homeworks}
             topicAnalysis={topicAnalysis}
             timetableMode={timetableMode}
+            timetableName={timetableName}
+            startDate={startDate}
+            endDate={endDate}
             onComplete={onComplete}
           />
         )}
 
-        <div className="flex justify-between pt-4">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-          >
-            Back
-          </Button>
-          {step < totalSteps && (
+        {step !== 3 && (
+          <div className="flex justify-between pt-4">
             <Button
-              onClick={handleNext}
-              className="bg-gradient-primary hover:opacity-90"
-              disabled={
-                (step === 1 && subjects.length === 0) ||
-                (step === 2 && topics.length === 0) ||
-                (step === 4 && !subjects.every(s => s.mode === "no-exam") && testDates.length === 0)
-              }
+              variant="outline"
+              onClick={handleBack}
             >
-              Next
+              Back
             </Button>
-          )}
-        </div>
+            {step < totalSteps && (
+              <Button
+                onClick={handleNext}
+                className="bg-gradient-primary hover:opacity-90"
+                disabled={
+                  (step === 1 && subjects.length === 0) ||
+                  (step === 2 && topics.length === 0) ||
+                  (step === 4 && !subjects.every(s => s.mode === "no-exam") && testDates.length === 0) ||
+                  (step === 7 && (!startDate || !endDate || !timetableName.trim()))
+                }
+              >
+                Next
+              </Button>
+            )}
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="flex justify-start pt-4">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+            >
+              Back
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

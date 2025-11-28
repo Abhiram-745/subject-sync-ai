@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,22 +14,32 @@ serve(async (req) => {
   }
 
   try {
-    const { topics } = await req.json();
+    const { topics, focusTopics } = await req.json();
 
-    // Format topics for AI analysis
-    const topicsList = topics.map((t: any, i: number) => 
-      `${i + 1}. ${t.name} (Subject: ${t.subject}, Current Difficulty: ${t.difficulty}, Confidence: ${t.confidence_level}/5)`
-    ).join('\n');
+    // Format topics for AI analysis, including user's difficulty notes
+    const topicsList = topics.map((t: any, i: number) => {
+      let entry = `${i + 1}. ${t.name} (Subject: ${t.subject}`;
+      if (t.confidence !== undefined) {
+        entry += `, Confidence: ${t.confidence}/10`;
+      }
+      if (t.difficulties) {
+        entry += `, User's notes on why it's difficult: "${t.difficulties}"`;
+      }
+      entry += ')';
+      return entry;
+    }).join('\n');
 
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
     const systemPrompt = `You are an expert GCSE study advisor. Analyze the provided topics and identify which ones should be prioritized in the study timetable based on:
-1. Difficulty level (harder topics need more time)
-2. Low confidence levels (topics with low confidence need more practice)
+1. User's confidence levels (lower confidence = higher priority)
+2. User's notes about why they find topics difficult (VERY IMPORTANT - use these insights)
 3. Topic complexity and interdependencies
 4. Typical GCSE exam weightings
+
+The user has specifically selected these as focus topics because they struggle with them. Pay close attention to any notes they've provided about WHY they struggle.
 
 Provide a priority score (1-10) for each topic where 10 means highest priority for study time allocation.
 
@@ -44,41 +54,54 @@ Return ONLY valid JSON in this format:
 }`;
 
     const response = await fetch(
-      'https://api.openai.com/v1/chat/completions',
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
       {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Analyze these GCSE topics and assign priority scores:\n\n${topicsList}` }
+            { role: "user", content: `Analyze these GCSE topics that the user finds difficult and assign priority scores:\n\n${topicsList}` }
           ],
-          max_tokens: 2048,
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
-      throw new Error(`OpenAI API request failed: ${response.status}`);
+      console.error("AI gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please contact support." }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      throw new Error(`AI gateway request failed: ${response.status}`);
     }
 
-    const openaiResult = await response.json();
-    console.log('OpenAI response:', JSON.stringify(openaiResult, null, 2));
+    const aiResult = await response.json();
+    console.log('AI response:', JSON.stringify(aiResult, null, 2));
 
-    // Extract content from OpenAI response
+    // Extract content from response
     let responseText: string | undefined;
-    if (openaiResult.choices?.[0]?.message?.content) {
-      responseText = openaiResult.choices[0].message.content;
+    if (aiResult.choices?.[0]?.message?.content) {
+      responseText = aiResult.choices[0].message.content;
     }
 
     if (!responseText || responseText.trim() === "") {
-      console.error('Empty AI response. Raw result:', JSON.stringify(openaiResult, null, 2));
+      console.error('Empty AI response. Raw result:', JSON.stringify(aiResult, null, 2));
       throw new Error('AI did not generate a response. Please try again.');
     }
 
