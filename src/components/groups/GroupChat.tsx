@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -172,12 +173,21 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
         ) : (
           messages.map((msg) => {
             const isOwnMessage = msg.user_id === currentUserId;
+            const initials = msg.profiles?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
             
             return (
               <div
                 key={msg.id}
-                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} gap-2`}
               >
+                {!isOwnMessage && (
+                  <Avatar className="h-8 w-8 mt-1 shrink-0">
+                    <AvatarImage src={msg.profiles?.avatar_url} />
+                    <AvatarFallback className="bg-gradient-primary text-white text-xs">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 <div
                   className={`max-w-[70%] rounded-lg p-3 ${
                     isOwnMessage
