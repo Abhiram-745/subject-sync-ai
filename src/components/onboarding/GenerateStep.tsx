@@ -13,6 +13,7 @@ import FeasibilityCheck from "./FeasibilityCheck";
 import { calculateFeasibility, FeasibilityResult } from "@/utils/feasibilityCalculator";
 import { useQueryClient } from "@tanstack/react-query";
 import GenerationProgress from "./GenerationProgress";
+import { triggerConfetti } from "@/utils/celebrations";
 
 interface GenerateStepProps {
   subjects: Subject[];
@@ -323,6 +324,8 @@ const GenerateStep = ({
       // Increment usage counter and invalidate cache
       await incrementUsage("timetable_creation", queryClient);
 
+      // Trigger celebration!
+      triggerConfetti('complete');
       toast.success("Timetable generated successfully!");
       
       // Check if this is the user's first timetable and trigger the features tour

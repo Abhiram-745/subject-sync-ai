@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Target, Plus, Edit2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { startOfWeek, endOfWeek, format } from "date-fns";
+import { triggerConfetti, triggerEmoji } from "@/utils/celebrations";
 
 interface WeeklyGoalsWidgetProps {
   userId: string;
@@ -18,6 +19,7 @@ export const WeeklyGoalsWidget = ({ userId }: WeeklyGoalsWidgetProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [targetHours, setTargetHours] = useState("");
   const [currentHours, setCurrentHours] = useState(0);
+  const hasTriggeredCelebration = useRef(false);
 
   useEffect(() => {
     fetchWeeklyGoal();
@@ -141,6 +143,16 @@ export const WeeklyGoalsWidget = ({ userId }: WeeklyGoalsWidgetProps) => {
   const progressPercentage = goal
     ? Math.min((currentHours / goal.target_hours) * 100, 100)
     : 0;
+
+  // Trigger celebration when goal is achieved
+  useEffect(() => {
+    if (progressPercentage >= 100 && goal && !hasTriggeredCelebration.current) {
+      hasTriggeredCelebration.current = true;
+      triggerConfetti('milestone');
+      triggerEmoji('🎯');
+      toast.success("Weekly goal achieved! Amazing work!");
+    }
+  }, [progressPercentage, goal]);
 
   if (loading) {
     return (

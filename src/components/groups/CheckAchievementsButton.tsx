@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Award, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { triggerConfetti, triggerEmoji } from "@/utils/celebrations";
 
 export const CheckAchievementsButton = () => {
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,12 @@ export const CheckAchievementsButton = () => {
       });
 
       if (error) throw error;
+
+      // Trigger celebration if achievements were awarded
+      if (data.achievementsAwarded > 0) {
+        triggerConfetti('achievement');
+        triggerEmoji('🏆');
+      }
 
       toast.success(
         `Achievement check complete! ${data.achievementsAwarded || 0} new achievements awarded.`,

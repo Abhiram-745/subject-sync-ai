@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Play, Pause, Square, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { triggerConfetti, triggerStars } from "@/utils/celebrations";
 
 interface SessionTimerProps {
   sessionId: string;
@@ -94,6 +95,18 @@ export const SessionTimer = ({ sessionId, subject, topic, plannedDurationMinutes
         focus_score: focusScore || null
       })
       .eq('id', sessionId);
+
+    // Trigger celebration based on focus score
+    if (focusScore >= 8) {
+      triggerConfetti('achievement');
+      toast.success("Amazing focus! Session complete!");
+    } else if (focusScore >= 5) {
+      triggerStars();
+      toast.success("Great job! Session complete!");
+    } else {
+      triggerConfetti('success');
+      toast.success("Session complete!");
+    }
 
     onComplete();
   };
