@@ -43,18 +43,18 @@ const Dashboard = () => {
 
   // Scroll to referrals section if hash is present
   useEffect(() => {
-    if (location.hash === "#referrals" && !loading) {
-      // Use requestAnimationFrame to ensure DOM is ready
+    if (location.hash === "#referrals" && !loading && hasData) {
+      // Use requestAnimationFrame to ensure DOM is ready after render
       requestAnimationFrame(() => {
         setTimeout(() => {
           const element = document.getElementById("referrals-section");
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
           }
-        }, 100);
+        }, 200);
       });
     }
-  }, [location.hash, loading]);
+  }, [location.hash, loading, hasData]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

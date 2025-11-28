@@ -174,10 +174,17 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
         size="sm"
         onClick={() => {
           if (location.pathname === "/dashboard") {
-            const element = document.getElementById("referrals-section");
-            if (element) {
-              element.scrollIntoView({ behavior: "smooth", block: "center" });
-            }
+            // Already on dashboard, scroll with retry logic
+            const scrollToReferrals = () => {
+              const element = document.getElementById("referrals-section");
+              if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "center" });
+              } else {
+                // Retry after a short delay if element not found
+                setTimeout(scrollToReferrals, 100);
+              }
+            };
+            scrollToReferrals();
           } else {
             navigate("/dashboard#referrals");
           }
@@ -516,12 +523,19 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  // Always navigate to dashboard with hash - this ensures scroll works
                   if (location.pathname === "/dashboard") {
-                    // Already on dashboard, just scroll
-                    const element = document.getElementById("referrals-section");
-                    if (element) {
-                      element.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }
+                    // Already on dashboard, scroll with retry logic
+                    const scrollToReferrals = () => {
+                      const element = document.getElementById("referrals-section");
+                      if (element) {
+                        element.scrollIntoView({ behavior: "smooth", block: "center" });
+                      } else {
+                        // Retry after a short delay if element not found
+                        setTimeout(scrollToReferrals, 100);
+                      }
+                    };
+                    scrollToReferrals();
                   } else {
                     navigate("/dashboard#referrals");
                   }
