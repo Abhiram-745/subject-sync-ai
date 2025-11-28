@@ -36,7 +36,7 @@ export const PageTransition = ({ children, className = "" }: PageTransitionProps
       animate="enter"
       exit="exit"
       variants={pageVariants}
-      className={className}
+      className={`min-h-screen overflow-y-auto overflow-x-hidden ${className}`}
     >
       {children}
     </motion.div>

@@ -585,11 +585,11 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[320px]">
+                <SheetContent side="right" className="w-[280px] sm:w-[320px] overflow-y-auto">
                   <SheetHeader>
                     <SheetTitle className="text-left gradient-text">Navigation</SheetTitle>
                   </SheetHeader>
-                  <div className="flex flex-col gap-2 mt-6">
+                  <div className="flex flex-col gap-2 mt-6 pb-8 overflow-y-auto max-h-[calc(100vh-8rem)]">
                     <NavigationItems onItemClick={() => setShowMobileMenu(false)} />
                   </div>
                 </SheetContent>
