@@ -11,12 +11,19 @@ export interface UsageLimits {
   lastResetDate: string;
 }
 
+const ADMIN_EMAILS = ['abhiramkakarla1@gmail.com', 'dhrishiv.panjabi@gmail.com'];
+
 export const useUserRole = () => {
   return useQuery({
     queryKey: ["user-role"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
+
+      // Admin users are always premium
+      if (ADMIN_EMAILS.includes(user.email || '')) {
+        return "paid" as UserRole;
+      }
 
       const { data, error } = await supabase
         .from("user_roles")
@@ -77,6 +84,11 @@ export const checkCanCreateTimetable = async (): Promise<boolean> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
+  // Admins can always create
+  if (ADMIN_EMAILS.includes(user.email || '')) {
+    return true;
+  }
+
   const { data, error } = await supabase.rpc("can_create_timetable", {
     _user_id: user.id,
   });
@@ -92,6 +104,11 @@ export const checkCanCreateTimetable = async (): Promise<boolean> => {
 export const checkCanRegenerateTimetable = async (): Promise<boolean> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
+
+  // Admins can always regenerate
+  if (ADMIN_EMAILS.includes(user.email || '')) {
+    return true;
+  }
 
   const { data, error } = await supabase.rpc("can_regenerate_timetable", {
     _user_id: user.id,
@@ -109,6 +126,11 @@ export const checkCanUseDailyInsights = async (): Promise<boolean> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
+  // Admins can always use
+  if (ADMIN_EMAILS.includes(user.email || '')) {
+    return true;
+  }
+
   const { data, error } = await supabase.rpc("can_use_daily_insights", {
     _user_id: user.id,
   });
@@ -124,6 +146,11 @@ export const checkCanUseDailyInsights = async (): Promise<boolean> => {
 export const checkCanGenerateAIInsights = async (): Promise<boolean> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
+
+  // Admins can always generate
+  if (ADMIN_EMAILS.includes(user.email || '')) {
+    return true;
+  }
 
   const { data, error } = await supabase.rpc("can_generate_ai_insights", {
     _user_id: user.id,

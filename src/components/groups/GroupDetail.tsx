@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Users, Settings, LogOut, Copy, CheckCircle2, UserPlus } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Header from "@/components/Header";
@@ -34,6 +35,7 @@ interface GroupMember {
   role: string;
   profiles: {
     full_name: string;
+    avatar_url?: string;
   };
 }
 
@@ -94,13 +96,16 @@ const GroupDetail = () => {
         const userIds = membersData.map(m => m.user_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, avatar_url')
           .in('id', userIds);
         
         const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
         const enrichedMembers = membersData.map(m => ({
           ...m,
-          profiles: { full_name: profilesMap.get(m.user_id)?.full_name || 'Unknown' }
+          profiles: { 
+            full_name: profilesMap.get(m.user_id)?.full_name || 'Unknown',
+            avatar_url: profilesMap.get(m.user_id)?.avatar_url || undefined
+          }
         }));
         
         setMembers(enrichedMembers);
@@ -337,14 +342,15 @@ const GroupDetail = () => {
                 {members.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">
-                          {member.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
-                        </span>
-                      </div>
+                      <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                        <AvatarImage src={member.profiles?.avatar_url} />
+                        <AvatarFallback className="bg-gradient-primary text-white">
+                          {member.profiles?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <p className="font-medium text-foreground">
                           {member.profiles?.full_name || 'Unknown User'}
