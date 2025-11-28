@@ -335,20 +335,20 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
         )}
       </Button>
 
-      {onNewTimetable && (
+      {isAdmin && (
         <>
           <Separator className="my-2" />
           <Button
             variant="default"
             size="sm"
             onClick={() => {
-              onNewTimetable();
+              navigate("/admin");
               onItemClick?.();
             }}
-            className="w-full justify-start gap-2"
+            className="w-full justify-start gap-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600"
           >
-            <Sparkles className="h-4 w-4" />
-            <span className="font-semibold">New Timetable</span>
+            <Crown className="h-4 w-4" />
+            <span className="font-semibold">Admin Panel</span>
           </Button>
         </>
       )}
