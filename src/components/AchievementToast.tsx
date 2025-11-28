@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
+import { useEffect } from "react";
+import { triggerConfetti, triggerStars } from "@/utils/celebrations";
 
 interface Achievement {
   id: string;
@@ -22,6 +24,15 @@ export const AchievementToast = ({ achievement }: AchievementToastProps) => {
     gold: "from-yellow-400 to-yellow-600",
     platinum: "from-cyan-400 to-blue-600"
   };
+
+  // Trigger celebration when achievement toast appears
+  useEffect(() => {
+    if (achievement.tier === 'gold' || achievement.tier === 'platinum') {
+      triggerConfetti('achievement');
+    } else {
+      triggerStars();
+    }
+  }, [achievement.tier]);
 
   return (
     <motion.div
