@@ -16,14 +16,20 @@ serve(async (req) => {
 
     console.log('Generating enhanced Vistari logo...');
 
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
+    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
+    if (!OPEN_ROUTER_API_KEY) {
+      throw new Error("OPEN_ROUTER_API_KEY not configured");
+    }
+
+    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${OPEN_ROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': Deno.env.get('SUPABASE_URL') || "https://vistari.app"
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: 'openai/dall-e-3',
         prompt: 'Create a premium, modern app icon for "Vistari" - a student revision planning app. The design should feature: a stylized calendar icon integrated with the letter "V", vibrant cyan-to-lime gradient background (from #0EA5E9 to #84CC16), smooth rounded square shape with subtle depth, clean white icon design, professional and trustworthy aesthetic, suitable for app icons. Make it sharp, high-quality, with soft shadows for depth. Size: 512x512px, ultra high resolution.',
         size: '1024x1024',
         quality: 'hd',

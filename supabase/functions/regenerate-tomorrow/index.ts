@@ -386,18 +386,24 @@ Return ONLY valid JSON:
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
+    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
+    if (!OPEN_ROUTER_API_KEY) {
+      throw new Error("OPEN_ROUTER_API_KEY not configured");
+    }
+
     let openaiResult;
     try {
       const response = await fetch(
-        'https://api.openai.com/v1/chat/completions',
+        'https://openrouter.ai/api/v1/chat/completions',
         {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENAI_API_KEY}`
+            "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
+            "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "openai/gpt-4o-mini",
             messages: [
               { role: "system", content: "You are an expert study scheduling assistant. Create realistic, balanced schedules that respect student preferences and time constraints. Always return valid JSON." },
               { role: "user", content: prompt }
