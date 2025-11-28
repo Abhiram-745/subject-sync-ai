@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2, Image as ImageIcon, X } from "lucide-react";
 import { Subject } from "../OnboardingWizard";
 import { useToast } from "@/hooks/use-toast";
@@ -289,46 +290,48 @@ const HomeworkStep = ({ subjects, homeworks, setHomeworks }: HomeworkStepProps) 
       {homeworks.length > 0 && (
         <div className="space-y-2">
           <Label>Added Homework ({homeworks.length})</Label>
-          <div className="space-y-2">
-            {homeworks.map((hw) => (
-              <Card key={hw.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium">{hw.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {hw.subject} • Due: {new Date(hw.due_date).toLocaleDateString()}
-                        {hw.duration && ` • ${hw.duration} mins`}
-                      </div>
-                      {hw.description && (
-                        <div className="text-sm text-muted-foreground mt-1">{hw.description}</div>
-                      )}
-                      {hw.images && hw.images.length > 0 && (
-                        <div className="flex gap-1 mt-2">
-                          {hw.images.map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={img}
-                              alt={`Attachment ${idx + 1}`}
-                              className="w-12 h-12 object-cover rounded border border-border"
-                            />
-                          ))}
+          <ScrollArea className="max-h-[200px] sm:max-h-[250px]">
+            <div className="space-y-2 pr-4">
+              {homeworks.map((hw) => (
+                <Card key={hw.id}>
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{hw.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {hw.subject} • Due: {new Date(hw.due_date).toLocaleDateString()}
+                          {hw.duration && ` • ${hw.duration} mins`}
                         </div>
-                      )}
+                        {hw.description && (
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{hw.description}</div>
+                        )}
+                        {hw.images && hw.images.length > 0 && (
+                          <div className="flex gap-1 mt-2">
+                            {hw.images.map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt={`Attachment ${idx + 1}`}
+                                className="w-10 h-10 object-cover rounded border border-border"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeHomework(hw.id!)}
+                        className="text-destructive hover:text-destructive flex-shrink-0 h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeHomework(hw.id!)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       )}
 

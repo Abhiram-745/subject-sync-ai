@@ -186,17 +186,17 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
   return (
     <>
       <WizardTour currentStep={step} />
-      <Card className="w-full max-w-3xl mx-auto shadow-lg flex flex-col max-h-[85vh]">
-        <CardHeader className="flex-shrink-0 pb-4">
+      <Card className="w-full max-w-3xl mx-auto shadow-lg flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[85vh]">
+        <CardHeader className="flex-shrink-0 pb-2 sm:pb-4 px-4 sm:px-6">
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
               <span>Step {step} of {totalSteps}</span>
               <span>{Math.round(progress)}% Complete</span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
-          <CardTitle className="text-xl sm:text-2xl">{stepTitles[step - 1]}</CardTitle>
-          <CardDescription className="text-sm">
+          <CardTitle className="text-lg sm:text-xl md:text-2xl">{stepTitles[step - 1]}</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             {step === 1 && "Add the subjects you're taking and select the study mode for each"}
             {step === 2 && "Tell us which topics you're currently studying"}
             {step === 3 && "Select topics you find difficult and tell us why"}
@@ -207,7 +207,7 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
             {step === 8 && "Review and generate your personalized timetable"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 px-4 sm:px-6">
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4 pb-4">
               {step === 1 && (

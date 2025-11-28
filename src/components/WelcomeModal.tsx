@@ -6,6 +6,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, BookOpen, Users, Brain, Target, CheckCircle2, Play, ChevronRight, ChevronLeft, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import vistariLogo from "@/assets/vistari-logo.png";
@@ -111,9 +112,9 @@ const WelcomeModal = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="space-y-8 py-6"
+          className="space-y-4 sm:space-y-6"
         >
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-3">
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -121,7 +122,7 @@ const WelcomeModal = () => {
               className="mx-auto relative"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/40 to-blue-500/40 rounded-full blur-2xl animate-pulse" />
-              <div className="relative w-24 h-24 mx-auto">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto">
                 <img 
                   src={vistariLogo} 
                   alt="Vistari" 
@@ -133,12 +134,12 @@ const WelcomeModal = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-muted-foreground text-lg leading-relaxed max-w-md mx-auto"
+              className="text-muted-foreground text-sm sm:text-base leading-relaxed max-w-md mx-auto"
             >
               Your AI-powered revision companion is ready to help you ace your GCSEs.
             </motion.p>
           </div>
-          <div className="grid gap-3 max-w-lg mx-auto">
+          <div className="grid gap-2 sm:gap-3 max-w-lg mx-auto">
             {[
               { icon: "📚", text: "Generate AI-powered timetables in seconds", delay: 0.5 },
               { icon: "🎯", text: "Track progress across all subjects", delay: 0.6 },
@@ -150,10 +151,10 @@ const WelcomeModal = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: item.delay, type: "spring" }}
-                className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-card/80 to-card border border-border/50 hover:border-primary/30 transition-all hover:shadow-lg hover:scale-[1.02]"
+                className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-card/80 to-card border border-border/50 hover:border-primary/30 transition-all hover:shadow-lg hover:scale-[1.02]"
               >
-                <span className="text-2xl">{item.icon}</span>
-                <span className="text-sm font-medium">{item.text}</span>
+                <span className="text-lg sm:text-xl">{item.icon}</span>
+                <span className="text-xs sm:text-sm font-medium">{item.text}</span>
               </motion.div>
             ))}
           </div>
@@ -167,7 +168,7 @@ const WelcomeModal = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="space-y-4 py-6 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar"
+          className="space-y-3"
         >
           {features.map((feature, idx) => (
             <motion.div
@@ -175,17 +176,17 @@ const WelcomeModal = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
-              className="flex gap-4 p-5 rounded-2xl bg-gradient-to-br from-card/80 to-card/40 border border-border/50 hover:border-primary/30 transition-all hover:shadow-xl hover:scale-[1.02] group"
+              className="flex gap-3 p-3 sm:p-4 rounded-xl bg-gradient-to-br from-card/80 to-card/40 border border-border/50 hover:border-primary/30 transition-all hover:shadow-xl hover:scale-[1.02] group"
             >
               <motion.div 
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.6 }}
-                className={`w-14 h-14 rounded-xl ${feature.iconBg} flex items-center justify-center flex-shrink-0 shadow-lg`}
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${feature.iconBg} flex items-center justify-center flex-shrink-0 shadow-lg`}
               >
-                <feature.icon className="h-7 w-7 text-white" />
+                <feature.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </motion.div>
-              <div className="space-y-1.5 flex-1">
-                <h4 className="font-semibold text-base group-hover:text-primary transition-colors">{feature.title}</h4>
+              <div className="space-y-1 flex-1 min-w-0">
+                <h4 className="font-semibold text-sm group-hover:text-primary transition-colors">{feature.title}</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
@@ -202,9 +203,9 @@ const WelcomeModal = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="space-y-8 py-6"
+          className="space-y-4 sm:space-y-6"
         >
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-3">
             <motion.div 
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -212,15 +213,15 @@ const WelcomeModal = () => {
               className="mx-auto relative"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-purple-400/40 to-pink-500/40 rounded-full blur-2xl animate-pulse" />
-              <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
-                <Play className="h-12 w-12 text-white" />
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
+                <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
               </div>
             </motion.div>
             <motion.h3
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-xl font-display font-bold text-foreground mb-2"
+              className="text-lg sm:text-xl font-display font-bold text-foreground"
             >
               Ready to Excel! 🎯
             </motion.h3>
@@ -228,36 +229,36 @@ const WelcomeModal = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-muted-foreground leading-relaxed"
+              className="text-muted-foreground text-sm leading-relaxed"
             >
-              Click "Start Guided Tour" to begin your journey through Vistari. We'll take you through each step with interactive arrows and tooltips:
+              Click "Start Guided Tour" to begin your journey through Vistari:
             </motion.p>
             <motion.ul 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mt-4 space-y-2 text-sm text-muted-foreground"
+              className="mt-3 space-y-1.5 text-xs sm:text-sm text-muted-foreground text-left max-w-sm mx-auto"
             >
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <strong>Events:</strong> Set up your schedule and add commitments
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></div>
+                <span><strong>Events:</strong> Set up your schedule</span>
               </li>
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <strong>Homework:</strong> Add your assignments and deadlines
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></div>
+                <span><strong>Homework:</strong> Add assignments</span>
               </li>
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <strong>Timetable:</strong> Create your AI-powered study plan
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></div>
+                <span><strong>Timetable:</strong> Create your study plan</span>
               </li>
               <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <strong>Features:</strong> Learn to use sessions, feedback, and insights
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></div>
+                <span><strong>Features:</strong> Learn sessions & insights</span>
               </li>
             </motion.ul>
           </div>
           
-          <div className="space-y-4 max-w-lg mx-auto">
+          <div className="space-y-3 max-w-lg mx-auto">
             {[
               {
                 icon: Sparkles,
@@ -281,9 +282,9 @@ const WelcomeModal = () => {
                 initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: item.delay, type: "spring" }}
-                className={`p-5 rounded-2xl bg-gradient-to-br ${item.gradient} border border-border/50 hover:border-primary/30 transition-all hover:shadow-lg hover:scale-[1.02]`}
+                className={`p-3 sm:p-4 rounded-xl bg-gradient-to-br ${item.gradient} border border-border/50 hover:border-primary/30 transition-all hover:shadow-lg hover:scale-[1.02]`}
               >
-                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <h4 className="font-semibold text-xs sm:text-sm mb-1 flex items-center gap-2">
                   <item.icon className={`h-4 w-4 ${item.iconColor}`} />
                   {item.title}
                 </h4>
@@ -298,11 +299,11 @@ const WelcomeModal = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.8 }}
-            className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 shadow-lg"
+            className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 shadow-lg"
           >
-            <p className="text-sm font-medium text-center flex items-center justify-center gap-2">
-              <span className="text-2xl">💡</span>
-              Take your time with each tutorial - they're designed to help you master Vistari!
+            <p className="text-xs sm:text-sm font-medium text-center flex items-center justify-center gap-2">
+              <span className="text-lg">💡</span>
+              Take your time with each tutorial!
             </p>
           </motion.div>
         </motion.div>
@@ -314,54 +315,56 @@ const WelcomeModal = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-3xl max-h-[95vh] p-0 gap-0 overflow-hidden border-none shadow-2xl bg-gradient-to-br from-background via-background to-muted/30">
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] p-0 gap-0 overflow-hidden flex flex-col border-none shadow-2xl bg-gradient-to-br from-background via-background to-muted/30">
         {/* Close Button */}
         <button
           onClick={handleComplete}
-          className="absolute right-4 top-4 z-50 rounded-full p-2 hover:bg-accent transition-colors"
+          className="absolute right-3 top-3 z-50 rounded-full p-1.5 hover:bg-accent transition-colors"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
 
         {/* Header */}
-        <div className="relative px-8 pt-8 pb-6 bg-gradient-to-br from-primary/5 via-transparent to-transparent">
+        <div className="relative px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4 bg-gradient-to-br from-primary/5 via-transparent to-transparent flex-shrink-0">
           <motion.div
             key={currentStep}
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <h2 className="text-3xl font-display font-bold gradient-text mb-2">
+            <h2 className="text-xl sm:text-2xl font-display font-bold gradient-text pr-8">
               {currentStepData.title}
             </h2>
           </motion.div>
         </div>
 
-        {/* Content */}
-        <div className="px-8 relative">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {currentStepData.content}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        {/* Content with ScrollArea */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="px-4 sm:px-6 py-2 sm:py-4">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {currentStepData.content}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </ScrollArea>
 
         {/* Footer */}
-        <div className="px-8 py-6 bg-gradient-to-t from-muted/20 to-transparent">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-t from-muted/20 to-transparent flex-shrink-0 border-t border-border/50">
           {/* Progress Indicator */}
-          <div className="flex items-center justify-center gap-2 mb-6">
+          <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
             {steps.map((_, idx) => (
               <motion.div
                 key={idx}
                 initial={false}
                 animate={{
-                  width: idx === currentStep ? 32 : 8,
+                  width: idx === currentStep ? 24 : 8,
                   backgroundColor: idx === currentStep 
                     ? "hsl(var(--primary))" 
                     : "hsl(var(--muted))",
@@ -374,20 +377,22 @@ const WelcomeModal = () => {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <Button
               variant="ghost"
+              size="sm"
               onClick={handlePrevious}
               disabled={currentStep === 0}
-              className="gap-2 hover:scale-105 transition-transform disabled:opacity-50"
+              className="gap-1 hover:scale-105 transition-transform disabled:opacity-50"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              <span className="hidden sm:inline">Previous</span>
             </Button>
             
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={handleComplete}
                 className="hover:scale-105 transition-transform"
               >
@@ -395,8 +400,9 @@ const WelcomeModal = () => {
               </Button>
               
               <Button
+                size="sm"
                 onClick={handleNext}
-                className="bg-gradient-primary gap-2 hover:scale-105 transition-transform shadow-lg hover:shadow-xl"
+                className="bg-gradient-primary gap-1 hover:scale-105 transition-transform shadow-lg hover:shadow-xl"
               >
                 {currentStep < steps.length - 1 ? (
                   <>
@@ -405,7 +411,8 @@ const WelcomeModal = () => {
                   </>
                 ) : (
                   <>
-                    Start Guided Tour
+                    <span className="hidden sm:inline">Start Guided Tour</span>
+                    <span className="sm:hidden">Start</span>
                     <CheckCircle2 className="h-4 w-4" />
                   </>
                 )}
@@ -415,8 +422,8 @@ const WelcomeModal = () => {
         </div>
 
         {/* Floating Background Elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -z-10" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-purple-500/5 to-transparent rounded-full blur-3xl -z-10" />
+        <div className="absolute top-0 right-0 w-32 sm:w-64 h-32 sm:h-64 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -z-10" />
+        <div className="absolute bottom-0 left-0 w-32 sm:w-64 h-32 sm:h-64 bg-gradient-to-tr from-purple-500/5 to-transparent rounded-full blur-3xl -z-10" />
       </DialogContent>
     </Dialog>
   );
