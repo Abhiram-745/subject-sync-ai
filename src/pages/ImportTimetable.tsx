@@ -385,6 +385,7 @@ const ImportTimetable = () => {
                     mode: typeof s === 'object' && s.mode ? s.mode : "long-term-exam" as const
                   }))}
                   topics={parsedTopics}
+                  setTopics={setParsedTopics}
                   onAnalysisComplete={(analysis) => {
                     setTopicConfidences(analysis);
                   }}
