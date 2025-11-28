@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import TimetableModeStep, { TimetableMode } from "./onboarding/TimetableModeStep";
 import SubjectsStep from "./onboarding/SubjectsStep";
 import TopicsStep from "./onboarding/TopicsStep";
@@ -208,8 +207,8 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 px-4 sm:px-6">
-          <ScrollArea className="flex-1 h-full max-h-[calc(100vh-20rem)] sm:max-h-[calc(85vh-14rem)]">
-            <div className="space-y-4 pb-4 pr-4">
+          <div className="flex-1 overflow-y-auto min-h-0 pr-2" style={{ maxHeight: 'calc(100vh - 18rem)' }}>
+            <div className="space-y-4 pb-4">
               {step === 1 && (
                 <div data-tour="subjects-step">
                   <SubjectsStep subjects={subjects} setSubjects={setSubjects} />
@@ -276,7 +275,7 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {step !== 3 && (
             <div className="flex justify-between pt-4 border-t flex-shrink-0">
