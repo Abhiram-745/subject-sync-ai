@@ -137,20 +137,21 @@ serve(async (req) => {
       confidence -= 25;
     }
 
-    // Use Lovable AI for deeper analysis if flags exist
+    // Use Open Router AI for deeper analysis if flags exist
     if (flags.length > 0) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      const OPEN_ROUTER_API_KEY = Deno.env.get("OPEN_ROUTER_API_KEY");
       
-      if (LOVABLE_API_KEY) {
+      if (OPEN_ROUTER_API_KEY) {
         try {
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              Authorization: `Bearer ${OPEN_ROUTER_API_KEY}`,
               "Content-Type": "application/json",
+              "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash-lite",
+              model: "google/gemini-2.5-flash",
               messages: [
                 {
                   role: "system",

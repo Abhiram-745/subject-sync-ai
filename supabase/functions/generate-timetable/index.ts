@@ -1052,22 +1052,24 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large timetables
 
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured");
+    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
+    if (!OPEN_ROUTER_API_KEY) {
+      throw new Error("OPEN_ROUTER_API_KEY not configured");
     }
 
     let openaiResult;
     try {
       const response = await fetch(
-        'https://api.openai.com/v1/chat/completions',
+        'https://openrouter.ai/api/v1/chat/completions',
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENAI_API_KEY}`
+            "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
+            "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "openai/gpt-4o-mini",
             messages: [
               { role: "system", content: "You are an expert educational planner specializing in GCSE revision strategies. Return ONLY valid JSON with no markdown formatting, no code fences, no additional text. Your response must start with { and end with }. CRITICAL: Ensure the JSON is complete with all closing braces and brackets." },
               { role: "user", content: prompt }
