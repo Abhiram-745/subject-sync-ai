@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import Joyride, { Step, CallBackProps, STATUS, ACTIONS } from "react-joyride";
+import Joyride, { Step, CallBackProps, STATUS, ACTIONS, EVENTS, BeaconRenderProps } from "react-joyride";
 import { supabase } from "@/integrations/supabase/client";
 
 type OnboardingStage = 
@@ -19,6 +19,7 @@ const GuidedOnboarding = ({ onComplete }: GuidedOnboardingProps) => {
   const [stage, setStage] = useState<OnboardingStage>("welcome");
   const [runTour, setRunTour] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
+  const [isNewUser, setIsNewUser] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -27,6 +28,8 @@ const GuidedOnboarding = ({ onComplete }: GuidedOnboardingProps) => {
   }, []);
 
   useEffect(() => {
+    if (!isNewUser) return;
+    
     const checkAndStartTour = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -60,7 +63,7 @@ const GuidedOnboarding = ({ onComplete }: GuidedOnboardingProps) => {
     };
 
     checkAndStartTour();
-  }, [location.pathname]);
+  }, [location.pathname, isNewUser]);
 
   const checkOnboardingStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -78,6 +81,7 @@ const GuidedOnboarding = ({ onComplete }: GuidedOnboardingProps) => {
       localStorage.setItem(`onboarding_completed_${user.id}`, "true");
       setStage("completed");
       setRunTour(false);
+      setIsNewUser(false);
       return;
     }
 
@@ -86,12 +90,12 @@ const GuidedOnboarding = ({ onComplete }: GuidedOnboardingProps) => {
     if (completedFlag === "true") {
       setStage("completed");
       setRunTour(false);
+      setIsNewUser(false);
       return;
     }
     
-    // New user without timetables - don't auto-start, wait for tab clicks
-    setStage("completed");
-    setRunTour(false);
+    // New user without timetables
+    setIsNewUser(true);
   };
 
 
@@ -130,90 +134,120 @@ const GuidedOnboarding = ({ onComplete }: GuidedOnboardingProps) => {
   };
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status } = data;
+    const { status, type } = data;
 
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+    // Only finish on actual completion - not on skip
+    if (status === STATUS.FINISHED) {
       setRunTour(false);
       markTabAsVisited();
     }
+    
+    // Prevent closing via overlay click or escape
+    if (type === EVENTS.TOUR_END && status === STATUS.SKIPPED) {
+      // Re-enable the tour if user tries to skip
+      setTimeout(() => {
+        setRunTour(true);
+      }, 100);
+    }
   };
+
+  // Spotlight-only step configuration
   const eventsOnboardingSteps: Step[] = [
     {
       target: "[data-tour='school-schedule']",
-      content:
-        "Welcome! Let's start by setting up your school schedule. Try entering an example, like leaving at 08:30 and returning at 15:30. This makes sure Vistari never schedules study sessions during school hours.",
+      content: "Set up your school schedule here - enter when you leave and return. This ensures study sessions are never scheduled during school hours.",
       disableBeacon: true,
       placement: "bottom",
-      spotlightPadding: 0,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
     {
       target: "[data-tour='add-event']",
-      content:
-        "Great! Now add another commitment like sports practice or music lessons. Click 'Add Event' and type in one real or example event so you can see how it appears in your timetable.",
+      content: "Add your commitments like sports practice or music lessons. Click 'Add Event' to see how it appears in your timetable.",
       placement: "left",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
     {
       target: "[data-tour='events-list']",
-      content:
-        "All your events appear here. You can edit or delete them anytime. Once you've added at least one event, click 'Next' to continue to homework.",
+      content: "All your events appear here. You can edit or delete them anytime. Continue to homework next!",
       placement: "top",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
   ];
 
   const homeworkOnboardingSteps: Step[] = [
     {
       target: "[data-tour='add-homework']",
-      content: "Perfect! Now let's add your homework assignments. Click 'Add Homework' and enter the subject, title, due date, and estimated duration. Vistari will schedule time to complete them!",
+      content: "Add your homework assignments here. Enter subject, title, due date, and estimated time. Vistari will schedule time to complete them!",
       disableBeacon: true,
       placement: "left",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
     {
       target: "[data-tour='active-homework']",
-      content: "Your active homework shows up here, sorted by due date. Add a few assignments, then click 'Next' to create your first AI-powered timetable!",
+      content: "Your active homework shows up here, sorted by due date. Now let's create your AI-powered timetable!",
       placement: "top",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
   ];
 
   const timetableCreateSteps: Step[] = [
     {
       target: "[data-tour='new-timetable']",
-      content: "Excellent! Now for the exciting part - creating your AI-powered study timetable! Click 'New Timetable' and we'll walk you through each step to create the perfect personalized study plan.",
+      content: "Click 'New Timetable' to create your AI-powered study plan! We'll walk you through each step.",
       disableBeacon: true,
       placement: "bottom",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
   ];
 
   const timetableFeaturesSteps: Step[] = [
     {
       target: "[data-tour='session-card']",
-      content: "Amazing! Your timetable is ready. Click on any study session to start a timer. The timer counts down and automatically asks for feedback when you're done.",
+      content: "Click on any study session to start a timer. It automatically asks for feedback when you're done.",
       disableBeacon: true,
       placement: "top",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
     {
       target: "[data-tour='calendar-legend']",
-      content: "Each color represents a different activity type: Red = events, Blue = revision, Green = homework, Yellow = test prep. This helps you see your day at a glance!",
+      content: "Colors show activity types: Red = events, Blue = revision, Green = homework, Yellow = test prep.",
       placement: "bottom",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
     {
       target: "[data-tour='daily-insights']",
-      content: "Check your daily insights panel to see your progress. The AI learns from your feedback and adapts future schedules to match your needs!",
+      content: "Check your daily insights to see progress. The AI learns from your feedback!",
       placement: "left",
-      spotlightPadding: 20,
+      spotlightPadding: 10,
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
     {
       target: "body",
-      content: "Perfect! You're all set to begin your study journey with Vistari. Explore other sections like Social and Groups to connect with friends. Good luck! 🎉",
+      content: "You're all set! Explore Social and Groups to connect with friends. Good luck! 🎉",
       placement: "center",
+      hideCloseButton: true,
+      disableOverlayClose: true,
     },
   ];
+
+  if (!isNewUser) return null;
 
   return (
     <>
@@ -223,83 +257,87 @@ const GuidedOnboarding = ({ onComplete }: GuidedOnboardingProps) => {
           run={runTour}
           continuous
           showProgress
-          showSkipButton
+          showSkipButton={false}
           scrollToFirstStep
           disableScrolling={false}
           disableScrollParentFix={false}
           scrollOffset={100}
           spotlightClicks={true}
-          disableOverlayClose={false}
+          disableOverlayClose={true}
+          disableCloseOnEsc={true}
+          hideCloseButton={true}
           callback={handleJoyrideCallback}
           styles={{
-        options: {
-          primaryColor: "hsl(var(--primary))",
-          textColor: "hsl(var(--foreground))",
-          backgroundColor: "hsl(var(--card))",
-          overlayColor: "transparent",
-          arrowColor: "hsl(var(--card))",
-          zIndex: 10000,
-        },
-        overlay: {
-          backgroundColor: "transparent",
-        },
-        spotlight: {
-          borderRadius: "18px",
-          backgroundColor: "transparent",
-          border: "2px solid rgba(255, 255, 255, 0.4)",
-        },
-        tooltip: {
-          borderRadius: "16px",
-          padding: "24px",
-          boxShadow: "0 10px 40px -10px rgba(0, 0, 0, 0.4)",
-          fontSize: "15px",
-        },
-        tooltipContainer: {
-          textAlign: "left",
-        },
-        tooltipTitle: {
-          fontSize: "18px",
-          fontWeight: 700,
-          marginBottom: "8px",
-        },
-        tooltipContent: {
-          fontSize: "14px",
-          lineHeight: "1.6",
-        },
-        buttonNext: {
-          backgroundColor: "hsl(var(--primary))",
-          borderRadius: "10px",
-          padding: "10px 20px",
-          fontSize: "14px",
-          fontWeight: 600,
-          transition: "all 0.2s ease",
-        },
-        buttonBack: {
-          color: "hsl(var(--muted-foreground))",
-          marginRight: "12px",
-          fontSize: "14px",
-        },
-        buttonSkip: {
-          color: "hsl(var(--muted-foreground))",
-          fontSize: "14px",
-        },
-      }}
-      floaterProps={{
-        disableAnimation: false,
-        hideArrow: false,
-        offset: 15,
-        placement: "auto",
-        styles: {
-          floater: {
-            filter: "none",
-          },
-          arrow: {
-            length: 12,
-            spread: 24,
-          },
-        },
-      }}
-    />
+            options: {
+              primaryColor: "hsl(var(--primary))",
+              textColor: "hsl(var(--foreground))",
+              backgroundColor: "hsl(var(--card))",
+              overlayColor: "rgba(0, 0, 0, 0.85)",
+              arrowColor: "hsl(var(--primary))",
+              zIndex: 10000,
+            },
+            overlay: {
+              backgroundColor: "rgba(0, 0, 0, 0.85)",
+            },
+            spotlight: {
+              borderRadius: "12px",
+              boxShadow: "0 0 0 4px hsl(190 70% 50%), 0 0 30px 10px hsla(190, 70%, 50%, 0.4)",
+            },
+            tooltip: {
+              borderRadius: "16px",
+              padding: "20px 24px",
+              boxShadow: "0 20px 60px -15px rgba(0, 0, 0, 0.5)",
+              fontSize: "15px",
+              maxWidth: "320px",
+              border: "1px solid hsl(var(--border))",
+            },
+            tooltipContainer: {
+              textAlign: "center",
+            },
+            tooltipTitle: {
+              display: "none",
+            },
+            tooltipContent: {
+              fontSize: "15px",
+              lineHeight: "1.6",
+              padding: "0",
+            },
+            buttonNext: {
+              backgroundColor: "hsl(var(--primary))",
+              borderRadius: "10px",
+              padding: "12px 24px",
+              fontSize: "14px",
+              fontWeight: 600,
+              boxShadow: "0 4px 15px hsla(190, 70%, 50%, 0.4)",
+            },
+            buttonBack: {
+              color: "hsl(var(--muted-foreground))",
+              marginRight: "12px",
+              fontSize: "14px",
+            },
+            buttonSkip: {
+              display: "none",
+            },
+            buttonClose: {
+              display: "none",
+            },
+          }}
+          floaterProps={{
+            disableAnimation: false,
+            hideArrow: false,
+            offset: 20,
+            styles: {
+              floater: {
+                filter: "drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3))",
+              },
+              arrow: {
+                color: "hsl(var(--primary))",
+                length: 14,
+                spread: 20,
+              },
+            },
+          }}
+        />
       )}
     </>
   );

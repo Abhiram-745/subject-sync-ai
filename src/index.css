@@ -301,4 +301,18 @@ All colors MUST be HSL.
 .logo-float {
   animation: logo-float 4s ease-in-out infinite;
 }
+
+/* Spotlight pulse animation for onboarding tour */
+@keyframes spotlight-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px hsl(var(--primary)), 0 0 20px 5px hsla(var(--primary), 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px hsl(var(--primary)), 0 0 40px 15px hsla(var(--primary), 0.5);
+  }
+}
+
+.spotlight-pulse {
+  animation: spotlight-pulse 2s ease-in-out infinite;
+}
 }

@@ -71,58 +71,58 @@ const Admin = () => {
 
   const loadUsers = async () => {
     try {
+      // First, get user data from edge function (which has service role access)
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('admin-get-users');
+      
+      if (emailError) {
+        console.error("Error fetching users from edge function:", emailError);
+        throw emailError;
+      }
+
+      const authUsers = emailData?.users || [];
+
       // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, full_name, created_at");
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+      }
 
-      // Get all user roles
+      // Get all user roles (admin has access via RLS policy)
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id, role");
 
-      if (rolesError) throw rolesError;
+      if (rolesError) {
+        console.error("Error fetching roles:", rolesError);
+      }
 
       // Get banned users
       const { data: bannedUsers, error: bannedError } = await supabase
         .from("banned_users")
         .select("user_id");
 
-      if (bannedError) throw bannedError;
+      if (bannedError) {
+        console.error("Error fetching banned users:", bannedError);
+      }
 
-      // Get user emails from auth metadata (using edge function)
-      
-      // Build user list from profiles
-      const userList: UserData[] = profiles?.map((profile) => {
-        const role = roles?.find((r) => r.user_id === profile.id);
-        const isBanned = bannedUsers?.some((b) => b.user_id === profile.id);
+      // Build user list from auth users
+      const userList: UserData[] = authUsers.map((authUser: any) => {
+        const profile = profiles?.find((p) => p.id === authUser.id);
+        const role = roles?.find((r) => r.user_id === authUser.id);
+        const isBanned = bannedUsers?.some((b) => b.user_id === authUser.id);
         
         return {
-          id: profile.id,
-          email: "", // Will be populated from auth
-          full_name: profile.full_name,
+          id: authUser.id,
+          email: authUser.email || "",
+          full_name: profile?.full_name || null,
           role: (role?.role as "paid" | "free") || "free",
           is_banned: isBanned || false,
-          created_at: profile.created_at || "",
+          created_at: authUser.created_at || profile?.created_at || "",
         };
-      }) || [];
-
-      // Try to get emails from edge function
-      try {
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('admin-get-users');
-        if (!emailError && emailData?.users) {
-          emailData.users.forEach((u: any) => {
-            const user = userList.find((ul) => ul.id === u.id);
-            if (user) {
-              user.email = u.email || "";
-            }
-          });
-        }
-      } catch (e) {
-        console.log("Could not fetch emails from edge function");
-      }
+      });
 
       setUsers(userList);
     } catch (error) {
