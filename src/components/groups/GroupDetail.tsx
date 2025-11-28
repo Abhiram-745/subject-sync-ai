@@ -12,6 +12,9 @@ import { GroupResources } from "./GroupResources";
 import { InviteFriendsDialog } from "./InviteFriendsDialog";
 import { GroupChallenge } from "./GroupChallenge";
 import { GroupAchievements } from "./GroupAchievements";
+import { useSectionTour } from "@/hooks/useSectionTour";
+import SectionSpotlight from "@/components/tours/SectionSpotlight";
+import { groupDetailSectionSteps } from "@/components/tours/groupSectionSteps";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +54,8 @@ const GroupDetail = () => {
     is_private: false,
     max_members: 10,
   });
+  
+  const { activeTourSection, markSectionViewed, handleSectionClick } = useSectionTour("group-detail");
 
   useEffect(() => {
     if (id) {
@@ -282,21 +287,47 @@ const GroupDetail = () => {
           )}
         </Card>
 
-        <GroupChallenge groupId={id!} isAdmin={currentUserRole === 'admin'} />
-        <GroupAchievements groupId={id!} />
+        <div 
+          data-tour="group-challenges" 
+          onClick={() => handleSectionClick("challenges")}
+        >
+          <GroupChallenge groupId={id!} isAdmin={currentUserRole === 'admin'} />
+        </div>
+        
+        <div 
+          data-tour="group-achievements" 
+          onClick={() => handleSectionClick("achievements")}
+        >
+          <GroupAchievements groupId={id!} />
+        </div>
 
         <Tabs defaultValue="timetables" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="timetables">Timetables</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger 
+              value="timetables" 
+              onClick={() => handleSectionClick("timetables")}
+            >
+              Timetables
+            </TabsTrigger>
+            <TabsTrigger 
+              value="members" 
+              onClick={() => handleSectionClick("members")}
+            >
+              Members
+            </TabsTrigger>
+            <TabsTrigger 
+              value="resources" 
+              onClick={() => handleSectionClick("resources")}
+            >
+              Resources
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="timetables">
+          <TabsContent value="timetables" data-tour="group-timetables">
             <GroupTimetables groupId={id!} />
           </TabsContent>
 
-          <TabsContent value="members">
+          <TabsContent value="members" data-tour="group-members">
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-foreground mb-4">
                 Group Members ({members.length})
@@ -329,10 +360,16 @@ const GroupDetail = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="resources">
+          <TabsContent value="resources" data-tour="group-resources">
             <GroupResources groupId={id!} />
           </TabsContent>
         </Tabs>
+        
+        <SectionSpotlight
+          sectionKey={activeTourSection}
+          onComplete={markSectionViewed}
+          sectionSteps={groupDetailSectionSteps}
+        />
       </div>
 
       {/* Settings Dialog */}

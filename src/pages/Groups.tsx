@@ -13,6 +13,9 @@ import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { JoinGroupModal } from "@/components/groups/JoinGroupModal";
 import { GroupInvitations } from "@/components/groups/GroupInvitations";
 import { CheckAchievementsButton } from "@/components/groups/CheckAchievementsButton";
+import { useSectionTour } from "@/hooks/useSectionTour";
+import SectionSpotlight from "@/components/tours/SectionSpotlight";
+import { groupsPageSectionSteps } from "@/components/tours/groupSectionSteps";
 
 interface StudyGroup {
   id: string;
@@ -33,6 +36,8 @@ const Groups = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  const { activeTourSection, markSectionViewed, handleSectionClick } = useSectionTour("groups-page");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -162,10 +167,25 @@ const Groups = () => {
             
             <div className="flex gap-2">
               <CheckAchievementsButton />
-              <Button onClick={() => setShowJoinModal(true)} variant="outline" className="gap-2 hover-lift">
+              <Button 
+                onClick={() => {
+                  handleSectionClick("join-code");
+                  setShowJoinModal(true);
+                }} 
+                variant="outline" 
+                className="gap-2 hover-lift"
+                data-tour="join-code"
+              >
                 <Search className="w-4 h-4" /> Join with Code
               </Button>
-              <Button onClick={() => setShowCreateModal(true)} className="gap-2">
+              <Button 
+                onClick={() => {
+                  handleSectionClick("create-group");
+                  setShowCreateModal(true);
+                }} 
+                className="gap-2"
+                data-tour="create-group"
+              >
                 <Plus className="h-4 w-4" /> Create Group
               </Button>
             </div>
@@ -174,8 +194,22 @@ const Groups = () => {
 
         <Tabs defaultValue="my-groups" className="space-y-6">
           <TabsList className="glass-card p-1 rounded-xl">
-            <TabsTrigger value="my-groups" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white rounded-lg">My Groups</TabsTrigger>
-            <TabsTrigger value="discover" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white rounded-lg">Discover</TabsTrigger>
+            <TabsTrigger 
+              value="my-groups" 
+              className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white rounded-lg"
+              onClick={() => handleSectionClick("my-groups")}
+              data-tour="my-groups-tab"
+            >
+              My Groups
+            </TabsTrigger>
+            <TabsTrigger 
+              value="discover" 
+              className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white rounded-lg"
+              onClick={() => handleSectionClick("discover")}
+              data-tour="discover-tab"
+            >
+              Discover
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="my-groups" className="space-y-4">
@@ -293,6 +327,12 @@ const Groups = () => {
         open={showJoinModal}
         onOpenChange={setShowJoinModal}
         onSuccess={() => user && loadGroups(user.id)}
+      />
+      
+      <SectionSpotlight
+        sectionKey={activeTourSection}
+        onComplete={markSectionViewed}
+        sectionSteps={groupsPageSectionSteps}
       />
     </div>
   );
