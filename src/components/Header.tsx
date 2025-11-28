@@ -173,7 +173,14 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
         variant="default"
         size="sm"
         onClick={() => {
-          navigate("/dashboard#referrals");
+          if (location.pathname === "/dashboard") {
+            const element = document.getElementById("referrals-section");
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          } else {
+            navigate("/dashboard#referrals");
+          }
           onItemClick?.();
         }}
         className="w-full justify-start gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white mb-2"
@@ -508,7 +515,17 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/dashboard#referrals")}
+                onClick={() => {
+                  if (location.pathname === "/dashboard") {
+                    // Already on dashboard, just scroll
+                    const element = document.getElementById("referrals-section");
+                    if (element) {
+                      element.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                  } else {
+                    navigate("/dashboard#referrals");
+                  }
+                }}
                 className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 hover:from-orange-500/20 hover:to-amber-500/20 transition-all group"
                 title="Early Supporters - Refer friends to earn rewards!"
               >

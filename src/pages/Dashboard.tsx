@@ -44,12 +44,15 @@ const Dashboard = () => {
   // Scroll to referrals section if hash is present
   useEffect(() => {
     if (location.hash === "#referrals" && !loading) {
-      setTimeout(() => {
-        const element = document.getElementById("referrals-section");
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 500);
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const element = document.getElementById("referrals-section");
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 100);
+      });
     }
   }, [location.hash, loading]);
 
