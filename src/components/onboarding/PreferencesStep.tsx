@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StudyPreferences, DayTimeSlot } from "../OnboardingWizard";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PreferencesStepProps {
   preferences: StudyPreferences;
@@ -13,13 +14,13 @@ interface PreferencesStepProps {
 
 const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) => {
   const weekDays = [
-    { value: "monday", label: "Monday" },
-    { value: "tuesday", label: "Tuesday" },
-    { value: "wednesday", label: "Wednesday" },
-    { value: "thursday", label: "Thursday" },
-    { value: "friday", label: "Friday" },
-    { value: "saturday", label: "Saturday" },
-    { value: "sunday", label: "Sunday" },
+    { value: "monday", label: "Mon" },
+    { value: "tuesday", label: "Tue" },
+    { value: "wednesday", label: "Wed" },
+    { value: "thursday", label: "Thu" },
+    { value: "friday", label: "Fri" },
+    { value: "saturday", label: "Sat" },
+    { value: "sunday", label: "Sun" },
   ];
 
   const toggleDay = (day: string) => {
@@ -41,7 +42,7 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="daily-hours">Daily Study Hours (Target)</Label>
@@ -60,7 +61,7 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
           />
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label>Session & Break Duration Mode</Label>
           <RadioGroup
             value={preferences.duration_mode}
@@ -70,26 +71,27 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                 duration_mode: value,
               })
             }
+            className="space-y-2"
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="flexible" id="flexible" />
-              <Label htmlFor="flexible" className="font-normal cursor-pointer">
-                Flexible - AI tailors session length based on task type (homework, focus topics, etc.)
+            <div className="flex items-start space-x-2">
+              <RadioGroupItem value="flexible" id="flexible" className="mt-1" />
+              <Label htmlFor="flexible" className="font-normal cursor-pointer text-sm">
+                <span className="font-medium">Flexible</span> - AI tailors session length based on task type
               </Label>
             </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="fixed" id="fixed" />
-              <Label htmlFor="fixed" className="font-normal cursor-pointer">
-                Fixed - Use specific durations for all sessions
+            <div className="flex items-start space-x-2">
+              <RadioGroupItem value="fixed" id="fixed" className="mt-1" />
+              <Label htmlFor="fixed" className="font-normal cursor-pointer text-sm">
+                <span className="font-medium">Fixed</span> - Use specific durations for all sessions
               </Label>
             </div>
           </RadioGroup>
         </div>
 
         {preferences.duration_mode === "fixed" && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="session-duration">Session Duration (mins)</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="session-duration" className="text-xs">Session (mins)</Label>
               <Input
                 id="session-duration"
                 type="number"
@@ -104,9 +106,8 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                 }
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="break-duration">Break Duration (mins)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="break-duration" className="text-xs">Break (mins)</Label>
               <Input
                 id="break-duration"
                 type="number"
@@ -125,73 +126,63 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
         )}
 
         {preferences.duration_mode === "flexible" && (
-          <Card className="p-3 bg-muted">
-            <p className="text-sm text-muted-foreground">
-              With flexible mode, the AI will automatically adjust session lengths:
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Homework: Uses exact estimated duration</li>
-                <li>Focus topics: 60-90 minute sessions</li>
-                <li>Regular topics: 30-45 minute sessions</li>
-                <li>Breaks: 10-15 minutes between sessions</li>
-              </ul>
+          <Card className="p-2 bg-muted">
+            <p className="text-xs text-muted-foreground">
+              AI will adjust: Homework (exact duration), Focus topics (60-90 min), Regular topics (30-45 min)
             </p>
           </Card>
         )}
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label>Study Days & Time Periods</Label>
-          <p className="text-sm text-muted-foreground">
-            Select days and set specific time periods for each day
-          </p>
-          <div className="space-y-2">
-            {weekDays.map((day) => {
-              const slot = preferences.day_time_slots.find((s) => s.day === day.value);
-              return (
-                <Card key={day.value} className="p-3">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center space-x-2 min-w-[120px]">
-                      <Checkbox
-                        id={day.value}
-                        checked={slot?.enabled || false}
-                        onCheckedChange={() => toggleDay(day.value)}
-                      />
-                      <label
-                        htmlFor={day.value}
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        {day.label}
-                      </label>
-                    </div>
-                    
-                    {slot?.enabled && (
-                      <div className="flex items-center gap-2 flex-1">
-                        <Input
-                          type="time"
-                          value={slot.startTime}
-                          onChange={(e) => updateTimeSlot(day.value, 'startTime', e.target.value)}
-                          className="w-32"
+          <ScrollArea className="h-[200px] rounded-md border p-2">
+            <div className="space-y-2">
+              {weekDays.map((day) => {
+                const slot = preferences.day_time_slots.find((s) => s.day === day.value);
+                return (
+                  <Card key={day.value} className="p-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center space-x-2 min-w-[80px]">
+                        <Checkbox
+                          id={day.value}
+                          checked={slot?.enabled || false}
+                          onCheckedChange={() => toggleDay(day.value)}
                         />
-                        <span className="text-sm text-muted-foreground">to</span>
-                        <Input
-                          type="time"
-                          value={slot.endTime}
-                          onChange={(e) => updateTimeSlot(day.value, 'endTime', e.target.value)}
-                          className="w-32"
-                        />
+                        <label
+                          htmlFor={day.value}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {day.label}
+                        </label>
                       </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                      
+                      {slot?.enabled && (
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                          <Input
+                            type="time"
+                            value={slot.startTime}
+                            onChange={(e) => updateTimeSlot(day.value, 'startTime', e.target.value)}
+                            className="w-24 h-8 text-xs"
+                          />
+                          <span className="text-xs text-muted-foreground">to</span>
+                          <Input
+                            type="time"
+                            value={slot.endTime}
+                            onChange={(e) => updateTimeSlot(day.value, 'endTime', e.target.value)}
+                            className="w-24 h-8 text-xs"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </ScrollArea>
         </div>
 
-        <div className="space-y-3">
-          <Label>Morning Sessions (Before School)</Label>
-          <p className="text-sm text-muted-foreground">
-            Do you want to include morning study sessions in your timetable?
-          </p>
+        <div className="space-y-2">
+          <Label>Additional Time Slots</Label>
           <Card className="p-3 space-y-3">
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
@@ -205,16 +196,13 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                     })
                   }
                 />
-                <label
-                  htmlFor="before-school"
-                  className="text-sm font-medium leading-none cursor-pointer"
-                >
-                  Yes, create morning sessions before school (short homework sessions only)
+                <label htmlFor="before-school" className="text-sm cursor-pointer">
+                  Morning sessions before school
                 </label>
               </div>
               
               {preferences.study_before_school && (
-                <div className="ml-6 flex items-center gap-2 pt-2">
+                <div className="ml-6 flex items-center gap-2">
                   <Input
                     type="time"
                     value={preferences.before_school_start || "07:00"}
@@ -224,9 +212,9 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                         before_school_start: e.target.value,
                       })
                     }
-                    className="w-32"
+                    className="w-24 h-8 text-xs"
                   />
-                  <span className="text-sm text-muted-foreground">to</span>
+                  <span className="text-xs">to</span>
                   <Input
                     type="time"
                     value={preferences.before_school_end || "08:00"}
@@ -236,7 +224,7 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                         before_school_end: e.target.value,
                       })
                     }
-                    className="w-32"
+                    className="w-24 h-8 text-xs"
                   />
                 </div>
               )}
@@ -254,16 +242,13 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                     })
                   }
                 />
-                <label
-                  htmlFor="during-lunch"
-                  className="text-sm font-medium leading-none cursor-pointer"
-                >
-                  Study during lunch time (15-20 min homework)
+                <label htmlFor="during-lunch" className="text-sm cursor-pointer">
+                  Study during lunch
                 </label>
               </div>
               
               {preferences.study_during_lunch && (
-                <div className="ml-6 flex items-center gap-2 pt-2">
+                <div className="ml-6 flex items-center gap-2">
                   <Input
                     type="time"
                     value={preferences.lunch_start || "12:00"}
@@ -273,9 +258,9 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                         lunch_start: e.target.value,
                       })
                     }
-                    className="w-32"
+                    className="w-24 h-8 text-xs"
                   />
-                  <span className="text-sm text-muted-foreground">to</span>
+                  <span className="text-xs">to</span>
                   <Input
                     type="time"
                     value={preferences.lunch_end || "12:30"}
@@ -285,7 +270,7 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                         lunch_end: e.target.value,
                       })
                     }
-                    className="w-32"
+                    className="w-24 h-8 text-xs"
                   />
                 </div>
               )}
@@ -302,16 +287,13 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                   })
                 }
               />
-              <label
-                htmlFor="free-periods"
-                className="text-sm font-medium leading-none cursor-pointer"
-              >
-                Study during free periods (short homework)
+              <label htmlFor="free-periods" className="text-sm cursor-pointer">
+                Study during free periods
               </label>
             </div>
             
-            <p className="text-xs text-muted-foreground pt-2 border-t">
-              Morning, lunch, and free period sessions will only schedule quick homework tasks (15-25 mins), not full revision sessions. If unchecked, no sessions will be scheduled during these times.
+            <p className="text-xs text-muted-foreground pt-1 border-t">
+              These slots are for quick homework tasks only (15-25 mins)
             </p>
           </Card>
         </div>
@@ -320,7 +302,7 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
           <Label htmlFor="ai-notes">Notes for AI (Optional)</Label>
           <Textarea
             id="ai-notes"
-            placeholder="Add any special instructions for the AI, like 'Exclude trigonometry topics as I've already revised them' or 'Focus more on evenings than mornings'"
+            placeholder="Any special instructions for the AI..."
             value={preferences.aiNotes || ""}
             onChange={(e) =>
               setPreferences({
@@ -328,12 +310,9 @@ const PreferencesStep = ({ preferences, setPreferences }: PreferencesStepProps) 
                 aiNotes: e.target.value,
               })
             }
-            rows={4}
-            className="resize-none"
+            rows={3}
+            className="resize-none text-sm"
           />
-          <p className="text-xs text-muted-foreground">
-            Tell the AI how you want your timetable structured - topics to exclude, time preferences, or any other custom requirements
-          </p>
         </div>
       </div>
     </div>

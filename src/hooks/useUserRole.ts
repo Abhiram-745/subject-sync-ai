@@ -25,6 +25,20 @@ export const useUserRole = () => {
         return "paid" as UserRole;
       }
 
+      // Check for active premium grant (from referrals)
+      const { data: premiumGrant } = await supabase
+        .from("premium_grants")
+        .select("id")
+        .eq("user_id", user.id)
+        .lte("starts_at", new Date().toISOString())
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (premiumGrant) {
+        return "paid" as UserRole;
+      }
+
+      // Check user_roles table
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
@@ -80,12 +94,24 @@ export const useUsageLimits = () => {
   });
 };
 
+const checkHasActivePremiumGrant = async (userId: string): Promise<boolean> => {
+  const { data } = await supabase.rpc("has_active_premium_grant", {
+    _user_id: userId,
+  });
+  return data as boolean;
+};
+
 export const checkCanCreateTimetable = async (): Promise<boolean> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
   // Admins can always create
   if (ADMIN_EMAILS.includes(user.email || '')) {
+    return true;
+  }
+
+  // Check for active premium grant
+  if (await checkHasActivePremiumGrant(user.id)) {
     return true;
   }
 
@@ -110,6 +136,11 @@ export const checkCanRegenerateTimetable = async (): Promise<boolean> => {
     return true;
   }
 
+  // Check for active premium grant
+  if (await checkHasActivePremiumGrant(user.id)) {
+    return true;
+  }
+
   const { data, error } = await supabase.rpc("can_regenerate_timetable", {
     _user_id: user.id,
   });
@@ -131,6 +162,11 @@ export const checkCanUseDailyInsights = async (): Promise<boolean> => {
     return true;
   }
 
+  // Check for active premium grant
+  if (await checkHasActivePremiumGrant(user.id)) {
+    return true;
+  }
+
   const { data, error } = await supabase.rpc("can_use_daily_insights", {
     _user_id: user.id,
   });
@@ -149,6 +185,11 @@ export const checkCanGenerateAIInsights = async (): Promise<boolean> => {
 
   // Admins can always generate
   if (ADMIN_EMAILS.includes(user.email || '')) {
+    return true;
+  }
+
+  // Check for active premium grant
+  if (await checkHasActivePremiumGrant(user.id)) {
     return true;
   }
 

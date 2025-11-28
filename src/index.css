@@ -12,6 +12,12 @@
   }
 }
 
+/* Global responsive fixes */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

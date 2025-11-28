@@ -508,6 +508,33 @@ export type Database = {
         }
         Relationships: []
       }
+      premium_grants: {
+        Row: {
+          created_at: string
+          expires_at: string
+          grant_type: string
+          id: string
+          starts_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          grant_type?: string
+          id?: string
+          starts_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          grant_type?: string
+          id?: string
+          starts_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -543,6 +570,62 @@ export type Database = {
           xp_to_next_level?: number | null
         }
         Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_uses: {
+        Row: {
+          created_at: string
+          id: string
+          is_valid: boolean
+          referral_code_id: string
+          referred_user_id: string
+          validation_reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_valid?: boolean
+          referral_code_id: string
+          referred_user_id: string
+          validation_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_valid?: boolean
+          referral_code_id?: string
+          referred_user_id?: string
+          validation_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_uses_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       session_analytics: {
         Row: {
@@ -1405,10 +1488,16 @@ export type Database = {
       can_generate_ai_insights: { Args: { _user_id: string }; Returns: boolean }
       can_regenerate_timetable: { Args: { _user_id: string }; Returns: boolean }
       can_use_daily_insights: { Args: { _user_id: string }; Returns: boolean }
+      check_and_grant_referral_premium: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      generate_referral_code: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      has_active_premium_grant: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

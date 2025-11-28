@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Plus, Sparkles, Target, Trophy, Calendar, CheckCircle2 } from "lucide-react";
+import { Plus, Sparkles, Target, Trophy, Calendar, CheckCircle2, Gift } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import OnboardingWizard from "@/components/OnboardingWizard";
@@ -22,6 +22,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import WelcomeModal from "@/components/WelcomeModal";
 import GuidedOnboarding from "@/components/tours/GuidedOnboarding";
 import PageTransition from "@/components/PageTransition";
+import ReferralCard from "@/components/ReferralCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -286,6 +287,21 @@ const Dashboard = () => {
                 return null;
               })}
 
+            {/* Referral Section */}
+            <div className="space-y-6">
+              <div className="section-header">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 flex items-center justify-center shadow-md">
+                  <Gift className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="section-title">🎁 Refer Friends</h2>
+                  <p className="text-sm text-muted-foreground">Get free premium by inviting friends</p>
+                </div>
+              </div>
+              <div className="max-w-md">
+                <ReferralCard />
+              </div>
+            </div>
 
             {/* Pricing Cards Section */}
             <div className="py-16 relative overflow-hidden">

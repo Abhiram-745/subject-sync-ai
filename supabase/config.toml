@@ -1,1 +1,40 @@
 project_id = "ftcrxkzftwetkselahfc"
+
+[functions.generate-timetable]
+verify_jwt = false
+
+[functions.parse-topics]
+verify_jwt = false
+
+[functions.analyze-difficulty]
+verify_jwt = false
+
+[functions.generate-insights]
+verify_jwt = false
+
+[functions.regenerate-tomorrow]
+verify_jwt = false
+
+[functions.analyze-test-score]
+verify_jwt = false
+
+[functions.adjust-schedule]
+verify_jwt = false
+
+[functions.export-account]
+verify_jwt = false
+
+[functions.import-account]
+verify_jwt = false
+
+[functions.admin-get-users]
+verify_jwt = false
+
+[functions.check-group-achievements]
+verify_jwt = false
+
+[functions.generate-logo]
+verify_jwt = false
+
+[functions.validate-email]
+verify_jwt = false

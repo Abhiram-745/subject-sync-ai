@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import TimetableModeStep, { TimetableMode } from "./onboarding/TimetableModeStep";
 import SubjectsStep from "./onboarding/SubjectsStep";
 import TopicsStep from "./onboarding/TopicsStep";
@@ -185,8 +186,8 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
   return (
     <>
       <WizardTour currentStep={step} />
-      <Card className="max-w-3xl mx-auto shadow-lg">
-        <CardHeader>
+      <Card className="w-full max-w-3xl mx-auto shadow-lg flex flex-col max-h-[85vh]">
+        <CardHeader className="flex-shrink-0 pb-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Step {step} of {totalSteps}</span>
@@ -194,8 +195,8 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
             </div>
             <Progress value={progress} className="h-2" />
           </div>
-          <CardTitle className="text-2xl">{stepTitles[step - 1]}</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-xl sm:text-2xl">{stepTitles[step - 1]}</CardTitle>
+          <CardDescription className="text-sm">
             {step === 1 && "Add the subjects you're taking and select the study mode for each"}
             {step === 2 && "Tell us which topics you're currently studying"}
             {step === 3 && "Select topics you find difficult and tell us why"}
@@ -206,75 +207,79 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
             {step === 8 && "Review and generate your personalized timetable"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {step === 1 && (
-            <div data-tour="subjects-step">
-              <SubjectsStep subjects={subjects} setSubjects={setSubjects} />
+        <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4 pb-4">
+              {step === 1 && (
+                <div data-tour="subjects-step">
+                  <SubjectsStep subjects={subjects} setSubjects={setSubjects} />
+                </div>
+              )}
+              {step === 2 && (
+                <div data-tour="topics-step">
+                  <TopicsStep subjects={subjects} topics={topics} setTopics={setTopics} />
+                </div>
+              )}
+              {step === 3 && (
+                <div data-tour="difficult-topics-step">
+                  <DifficultTopicsStep 
+                    subjects={subjects} 
+                    topics={topics}
+                    setTopics={setTopics}
+                    onAnalysisComplete={setTopicAnalysis}
+                    onSkip={handleNext}
+                  />
+                </div>
+              )}
+              {step === 4 && !subjects.every(s => s.mode === "no-exam") && (
+                <div data-tour="test-dates-step">
+                  <TestDatesStep subjects={subjects} testDates={testDates} setTestDates={setTestDates} />
+                </div>
+              )}
+              {step === 5 && (
+                <div data-tour="preferences-step">
+                  <PreferencesStep preferences={preferences} setPreferences={setPreferences} />
+                </div>
+              )}
+              {step === 6 && (
+                <div data-tour="homework-step">
+                  <HomeworkStep subjects={subjects} homeworks={homeworks} setHomeworks={setHomeworks} />
+                </div>
+              )}
+              {step === 7 && (
+                <div data-tour="dates-step">
+                  <TimetableDatesStep
+                    timetableName={timetableName}
+                    setTimetableName={setTimetableName}
+                    startDate={startDate}
+                    setStartDate={setStartDate}
+                    endDate={endDate}
+                    setEndDate={setEndDate}
+                  />
+                </div>
+              )}
+              {step === 8 && (
+                <div data-tour="generate-step">
+                  <GenerateStep
+                    subjects={subjects}
+                    topics={topics}
+                    testDates={testDates}
+                    preferences={preferences}
+                    homeworks={homeworks}
+                    topicAnalysis={topicAnalysis}
+                    timetableMode={timetableMode}
+                    timetableName={timetableName}
+                    startDate={startDate}
+                    endDate={endDate}
+                    onComplete={handleComplete}
+                  />
+                </div>
+              )}
             </div>
-          )}
-          {step === 2 && (
-            <div data-tour="topics-step">
-              <TopicsStep subjects={subjects} topics={topics} setTopics={setTopics} />
-            </div>
-          )}
-          {step === 3 && (
-            <div data-tour="difficult-topics-step">
-              <DifficultTopicsStep 
-                subjects={subjects} 
-                topics={topics}
-                setTopics={setTopics}
-                onAnalysisComplete={setTopicAnalysis}
-                onSkip={handleNext}
-              />
-            </div>
-          )}
-          {step === 4 && !subjects.every(s => s.mode === "no-exam") && (
-            <div data-tour="test-dates-step">
-              <TestDatesStep subjects={subjects} testDates={testDates} setTestDates={setTestDates} />
-            </div>
-          )}
-          {step === 5 && (
-            <div data-tour="preferences-step">
-              <PreferencesStep preferences={preferences} setPreferences={setPreferences} />
-            </div>
-          )}
-          {step === 6 && (
-            <div data-tour="homework-step">
-              <HomeworkStep subjects={subjects} homeworks={homeworks} setHomeworks={setHomeworks} />
-            </div>
-          )}
-          {step === 7 && (
-            <div data-tour="dates-step">
-              <TimetableDatesStep
-                timetableName={timetableName}
-                setTimetableName={setTimetableName}
-                startDate={startDate}
-                setStartDate={setStartDate}
-                endDate={endDate}
-                setEndDate={setEndDate}
-              />
-            </div>
-          )}
-          {step === 8 && (
-            <div data-tour="generate-step">
-              <GenerateStep
-                subjects={subjects}
-                topics={topics}
-                testDates={testDates}
-                preferences={preferences}
-                homeworks={homeworks}
-                topicAnalysis={topicAnalysis}
-                timetableMode={timetableMode}
-                timetableName={timetableName}
-                startDate={startDate}
-                endDate={endDate}
-                onComplete={handleComplete}
-              />
-            </div>
-          )}
+          </ScrollArea>
 
           {step !== 3 && (
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-4 border-t flex-shrink-0">
               <Button
                 variant="outline"
                 onClick={handleBack}
@@ -299,7 +304,7 @@ const OnboardingWizard = ({ onComplete, onCancel }: OnboardingWizardProps) => {
           )}
 
           {step === 3 && (
-            <div className="flex justify-start pt-4">
+            <div className="flex justify-start pt-4 border-t flex-shrink-0">
               <Button
                 variant="outline"
                 onClick={handleBack}
