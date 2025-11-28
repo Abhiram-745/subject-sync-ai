@@ -25,7 +25,6 @@ Vistari is a GCSE revision planner that creates personalized study timetables th
 6. **parse-topics** - Extracts topics from text/images
 7. **adjust-schedule** - Modifies schedules based on user requests
 8. **regenerate-tomorrow** - Regenerates next day's schedule
-9. **generate-logo** - Returns placeholder SVG logo (no AI image generation)
 
 ## Project Structure
 - `/client` - React frontend with Vite
