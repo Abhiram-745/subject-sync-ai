@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,6 +118,9 @@ export const ShareTimetableDialog = ({ open, onOpenChange, timetableId, timetabl
             <Share2 className="w-5 h-5" />
             Share Timetable
           </DialogTitle>
+          <DialogDescription>
+            Share "{timetableName}" with your study groups.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

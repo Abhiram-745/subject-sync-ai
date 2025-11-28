@@ -34,11 +34,14 @@ body {
   min-height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Ensure main content areas are scrollable */
 main {
-  overflow-y: visible;
+  overflow-y: auto;
+  flex: 1;
 }
 
 /* Page wrapper - ensures all pages can scroll */
@@ -46,12 +49,14 @@ main {
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  flex: 1;
 }
 
 /* Ensure dialogs and modals fit viewport */
 .dialog-content-responsive {
   max-height: calc(100vh - 2rem);
   max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
 }
 
 /* Wizard container responsive fix */

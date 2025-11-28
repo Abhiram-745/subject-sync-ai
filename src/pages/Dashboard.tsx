@@ -41,20 +41,23 @@ const Dashboard = () => {
   }>>([]);
   const { data: userRole } = useUserRole();
 
-  // Scroll to referrals section if hash is present
+  // Scroll to referrals section if hash is present - works regardless of hasData
   useEffect(() => {
-    if (location.hash === "#referrals" && !loading && hasData) {
-      // Use requestAnimationFrame to ensure DOM is ready after render
+    if (location.hash === "#referrals" && !loading) {
+      // Use retry logic to ensure element exists in DOM
+      const scrollToReferrals = (attempts = 0) => {
+        const element = document.getElementById("referrals-section");
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (attempts < 15) {
+          setTimeout(() => scrollToReferrals(attempts + 1), 150);
+        }
+      };
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          const element = document.getElementById("referrals-section");
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 200);
+        setTimeout(() => scrollToReferrals(), 100);
       });
     }
-  }, [location.hash, loading, hasData]);
+  }, [location.hash, loading]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

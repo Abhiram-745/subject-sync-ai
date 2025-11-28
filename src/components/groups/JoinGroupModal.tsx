@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,6 +91,9 @@ export const JoinGroupModal = ({ open, onOpenChange, onSuccess }: JoinGroupModal
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Join Private Group</DialogTitle>
+          <DialogDescription>
+            Enter the join code shared by the group admin.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

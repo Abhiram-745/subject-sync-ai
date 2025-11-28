@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -124,6 +124,9 @@ export const CreateGroupModal = ({ open, onOpenChange, onSuccess }: CreateGroupM
           <DialogTitle>
             {createdJoinCode ? "Group Created!" : "Create Study Group"}
           </DialogTitle>
+          <DialogDescription>
+            {createdJoinCode ? "Share this code with your friends to join the group." : "Start a new study group and invite your friends."}
+          </DialogDescription>
         </DialogHeader>
 
         {createdJoinCode ? (
