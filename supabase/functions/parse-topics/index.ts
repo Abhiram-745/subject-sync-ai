@@ -14,26 +14,6 @@ serve(async (req) => {
   try {
     const { text, subjectName, images } = await req.json();
 
-    // Note: Gemma 3n is a text-only model - images are not supported
-    if (images && Array.isArray(images) && images.length > 0 && !text) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Image-only topic extraction is not available with the current AI model. Please provide text or typed topic names instead.",
-          topics: []
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Build text prompt for Gemma (text-only model)
-    let contentParts = `Subject: ${subjectName}\n\n`;
-    if (text) {
-      contentParts += `Extract topics from this text:\n${text}`;
-    }
-
     const systemPrompt = `You are an expert at extracting study topics from images and text.
 
 CRITICAL RULES - READ CAREFULLY:
@@ -58,10 +38,55 @@ Return ONLY valid JSON in this format:
   ]
 }`;
 
+    // Build multimodal message content for Gemini
+    const messageContent: any[] = [];
+    
+    // Add system prompt and subject context
+    let textContent = `${systemPrompt}\n\nSubject: ${subjectName}\n\n`;
+    if (text) {
+      textContent += `Extract topics from this text:\n${text}`;
+    } else if (images && Array.isArray(images) && images.length > 0) {
+      textContent += `Extract topics from the image(s) below. Look for topic names, chapter titles, bullet points, or checklist items.`;
+    }
+    
+    messageContent.push({ type: "text", text: textContent });
+    
+    // Add images if provided (Gemini 2.0 Flash supports vision)
+    if (images && Array.isArray(images) && images.length > 0) {
+      console.log(`Processing ${images.length} image(s) for topic extraction`);
+      
+      for (const imageData of images) {
+        if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+          // Parse base64 data URL
+          const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            const mimeType = matches[1];
+            const base64Data = matches[2];
+            messageContent.push({
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${base64Data}`
+              }
+            });
+          }
+        } else if (typeof imageData === 'string' && (imageData.startsWith('http://') || imageData.startsWith('https://'))) {
+          // Direct URL
+          messageContent.push({
+            type: "image_url",
+            image_url: {
+              url: imageData
+            }
+          });
+        }
+      }
+    }
+
     const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
     if (!OPEN_ROUTER_API_KEY) {
       throw new Error("OPEN_ROUTER_API_KEY not configured");
     }
+
+    console.log(`Calling Gemini with ${messageContent.length} content parts (${images?.length || 0} images)`);
 
     const response = await fetch(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -75,7 +100,7 @@ Return ONLY valid JSON in this format:
         body: JSON.stringify({
           model: "google/gemini-2.0-flash-exp:free",
           messages: [
-            { role: "user", content: `${systemPrompt}\n\n${contentParts}` }
+            { role: "user", content: messageContent }
           ],
         }),
       }
@@ -102,9 +127,9 @@ Return ONLY valid JSON in this format:
     }
 
     const openaiResult = await response.json();
-    console.log('OpenAI response:', JSON.stringify(openaiResult, null, 2));
+    console.log('Gemini response:', JSON.stringify(openaiResult, null, 2));
 
-    // Extract content from OpenAI response
+    // Extract content from response
     let responseText: string | undefined;
     if (openaiResult.choices?.[0]?.message?.content) {
       responseText = openaiResult.choices[0].message.content;
