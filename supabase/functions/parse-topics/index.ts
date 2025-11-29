@@ -94,7 +94,7 @@ Do NOT include any explanation or commentary - ONLY the JSON.`;
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${BYTEZ_API_KEY}`
+          "Authorization": BYTEZ_API_KEY
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",

@@ -1205,7 +1205,7 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${BYTEZ_API_KEY}`
+            "Authorization": BYTEZ_API_KEY
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-pro",
