@@ -330,32 +330,113 @@ ${!schoolPrefs.study_before_school && !schoolPrefs.study_during_lunch && !school
       .join(", ");
 
     // Add priority analysis context if available - FOCUS topics get SIGNIFICANTLY MORE study time with MULTIPLE sessions
+    // VARIABLE DURATIONS: Priority score determines session length (higher priority = longer sessions)
+    // Formula: 30 + (priority_score * 6) = duration in minutes
+    // Priority 10 = 90 mins, Priority 5 = 60 mins, Priority 1 = 36 mins
+    const calculatePriorityDuration = (priorityScore: number, isFixedMode: boolean, baseDuration: number) => {
+      if (isFixedMode) return baseDuration; // Fixed mode uses user's exact duration
+      // Variable duration based on priority: higher priority = more intensive/longer sessions
+      return Math.min(90, Math.max(30, 30 + (priorityScore * 6)));
+    };
+    
     // RESPECT the user's duration mode when calculating focus topic durations
     const focusSessionDuration = preferences.duration_mode === "fixed" 
       ? preferences.session_duration 
       : (timetableMode === "short-term-exam" ? 75 : timetableMode === "long-term-exam" ? 55 : 45);
     
     const priorityContext = topicAnalysis?.priorities 
-      ? "\n\n**FOCUS TOPICS** (these topics need SIGNIFICANTLY MORE study time - schedule MULTIPLE sessions):\n" + 
+      ? "\n\n**FOCUS TOPICS WITH CALCULATED DURATIONS** (use EXACT durations shown - higher priority = longer sessions):\n" + 
         topicAnalysis.priorities
           .sort((a: any, b: any) => b.priority_score - a.priority_score)
           .map((p: any) => {
+            const calculatedDuration = calculatePriorityDuration(p.priority_score, preferences.duration_mode === "fixed", preferences.session_duration);
             const sessions = Math.max(4, Math.ceil(p.priority_score / 1.5));
-            return `${p.topic_name}: Priority ${p.priority_score}/10 - ${p.reasoning}\n  → MUST schedule ${sessions} sessions of ${focusSessionDuration} minutes EACH for this topic throughout the timetable`;
+            return `📌 ${p.topic_name}: Priority ${p.priority_score}/10
+   → USER'S STRUGGLES: "${p.reasoning}"
+   → CALCULATED DURATION: ${calculatedDuration} minutes per session (based on priority score)
+   → NUMBER OF SESSIONS: ${sessions} sessions throughout the timetable
+   → WHY THIS DURATION: Priority ${p.priority_score} × 6 + 30 = ${calculatedDuration} mins (more struggle = more time)`;
           })
-          .join("\n")
+          .join("\n\n")
       : "";
 
     const difficultTopicsContext = topicAnalysis?.difficult_topics 
       ? "\n\n**ADDITIONAL FOCUS CONTEXT** (allocate extra time and multiple sessions):\n" + 
         topicAnalysis.difficult_topics
-          .map((dt: any) => `${dt.topic_name}: ${dt.reason}\nStudy Suggestion: ${dt.study_suggestion}\n  → These need sessions of ${focusSessionDuration} minutes each`)
+          .map((dt: any) => {
+            const estimatedPriority = 7; // Default high priority for difficult topics
+            const calculatedDuration = calculatePriorityDuration(estimatedPriority, preferences.duration_mode === "fixed", preferences.session_duration);
+            return `${dt.topic_name}: ${dt.reason}\nStudy Suggestion: ${dt.study_suggestion}\n  → Calculated duration: ${calculatedDuration} minutes each`;
+          })
           .join("\n")
       : "";
 
     const userNotesContext = aiNotes 
       ? `\n\n**USER'S CUSTOM INSTRUCTIONS** (MUST FOLLOW THESE REQUIREMENTS):\n${aiNotes}\n`
       : "";
+
+    // Client-side school study preferences - these override database values
+    const clientSchoolPrefsContext = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏫 CLIENT-SIDE SCHOOL PREFERENCES (from user's current session) 🏫
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${preferences.study_before_school === true ? `✅ BEFORE SCHOOL STUDY ENABLED
+   Time window: ${preferences.before_school_start || '07:00'} - ${preferences.before_school_end || '08:30'}
+   → You MAY schedule SHORT homework sessions (15-25 mins) in this time slot
+   → ONLY homework, never intensive revision/exam prep` : `❌ BEFORE SCHOOL STUDY DISABLED
+   → DO NOT schedule anything during the morning before school
+   → This time is completely off-limits`}
+
+${preferences.study_during_lunch === true ? `✅ LUNCH TIME STUDY ENABLED
+   Time window: ${preferences.lunch_start || '12:00'} - ${preferences.lunch_end || '13:00'}
+   → You MAY schedule SHORT homework sessions (15-20 mins) during lunch
+   → ONLY homework, never intensive revision` : `❌ LUNCH TIME STUDY DISABLED
+   → DO NOT schedule anything during lunch hours
+   → Lunch time is break time, not study time`}
+
+${preferences.study_during_free_periods === true ? `✅ FREE PERIODS STUDY ENABLED
+   → You MAY add SHORT homework sessions during free periods at school (15-25 mins)
+   → ONLY homework, never intensive revision` : `❌ FREE PERIODS STUDY DISABLED
+   → DO NOT schedule anything during school hours
+   → School time is completely off-limits for study`}
+
+These preferences take priority over any database-stored values.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+    // Variable duration instructions for flexible mode
+    const variableDurationInstructions = preferences.duration_mode === "flexible" ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📏 VARIABLE DURATION FORMULA (MANDATORY IN FLEXIBLE MODE) 📏
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For FOCUS TOPICS (from priority analysis), calculate session duration:
+   Duration = 30 + (priority_score × 6) minutes
+
+DURATION EXAMPLES BY PRIORITY:
+• Priority 10 topic → 30 + (10 × 6) = 90 minutes per session (MAXIMUM - most intensive)
+• Priority 8 topic  → 30 + (8 × 6) = 78 minutes per session
+• Priority 6 topic  → 30 + (6 × 6) = 66 minutes per session
+• Priority 5 topic  → 30 + (5 × 6) = 60 minutes per session
+• Priority 4 topic  → 30 + (4 × 6) = 54 minutes per session
+• Priority 2 topic  → 30 + (2 × 6) = 42 minutes per session
+• Priority 1 topic  → 30 + (1 × 6) = 36 minutes per session (MINIMUM for focus topics)
+
+NON-FOCUS TOPICS (topics NOT in the priority list):
+• Regular topics: 35-45 minutes per session
+• Easy review topics: 25-35 minutes per session
+
+🎯 HIGH PRIORITY = LONGER SESSIONS (the user struggles more, needs more time)
+🎯 LOW PRIORITY = SHORTER SESSIONS (the user is more confident, needs less time)
+
+USER'S DIFFICULTY NOTES - THESE EXPLAIN WHY THEY STRUGGLE:
+${topicAnalysis?.priorities?.map((p: any) => `• ${p.topic_name}: "${p.reasoning}" → Priority ${p.priority_score}/10`).join('\n') || 'No specific difficulty notes provided'}
+
+The AI analyzed these struggles and assigned priority scores accordingly.
+USE THE CALCULATED DURATIONS ABOVE - DO NOT use flat durations for focus topics!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+` : '';
 
     const eventsContext = events.length > 0
       ? `
@@ -593,8 +674,11 @@ SAMPLE SCHEDULE FOR ${firstSlot.startTime}-${firstSlot.endTime}:
 
 ${strictTimeWindowContext}
 
+${variableDurationInstructions}
+
 ${modeContext}
 ${schoolHoursContext}
+${clientSchoolPrefsContext}
 ${peakHoursContext}
 
 SUBJECTS: ${subjectsContext}
@@ -1121,7 +1205,7 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
             "Authorization": BYTEZ_API_KEY
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.5-pro",
             messages: [
               { role: "user", content: `INSTRUCTIONS: You are an expert educational planner specializing in GCSE revision strategies. Return ONLY valid JSON with no markdown formatting, no code fences, no additional text. Your response must start with { and end with }. CRITICAL: Ensure the JSON is complete with all closing braces and brackets.\n\nTASK:\n${prompt}` }
             ],
