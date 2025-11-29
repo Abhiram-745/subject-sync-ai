@@ -369,26 +369,83 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
             <span className="text-xl font-bold gradient-text hidden sm:block">Vistari</span>
           </div>
 
+          {/* Desktop Navigation - Hidden on mobile/tablet */}
+          <nav className="hidden lg:flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-sm font-medium">
+              <Home className="h-4 w-4 mr-1.5" />
+              Dashboard
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/timetables")} className="text-sm font-medium">
+              <Calendar className="h-4 w-4 mr-1.5" />
+              Timetables
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/calendar")} className="text-sm font-medium">
+              <CalendarClock className="h-4 w-4 mr-1.5" />
+              Calendar
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/homework")} className="text-sm font-medium">
+              <ClipboardList className="h-4 w-4 mr-1.5" />
+              Homework
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/groups")} className="text-sm font-medium">
+              <Users className="h-4 w-4 mr-1.5" />
+              Groups
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-sm font-medium">
+                  More
+                  <svg className="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-popover border border-border shadow-lg z-50">
+                <DropdownMenuItem onClick={() => navigate("/events")} className="cursor-pointer">
+                  <CalendarClock className="h-4 w-4 mr-2" />
+                  Events
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/test-scores")} className="cursor-pointer">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Test Scores
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/social")} className="cursor-pointer">
+                  <Users className="h-4 w-4 mr-2" />
+                  Social
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/ai-insights")} className="cursor-pointer">
+                  <Brain className="h-4 w-4 mr-2" />
+                  AI Insights
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer">
+                    <Crown className="h-4 w-4 mr-2 text-amber-500" />
+                    Admin Panel
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </nav>
+
           {/* Right Side Actions */}
           <div className="flex items-center gap-2">
-
-            {/* Tutorial Button */}
+            {/* Tutorial Button - Desktop only */}
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={handleTutorialClick}
-              className="hidden xl:flex gap-1.5 hover:bg-gradient-primary/10 hover:text-primary transition-all"
+              className="hidden md:flex hover:bg-primary/10 transition-all"
               title="Start Guided Tour"
             >
               <HelpCircle className="h-4 w-4" />
             </Button>
 
-            {/* Theme Toggle - Desktop only */}
+            {/* Theme Toggle */}
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={toggleTheme}
-              className="hidden xl:flex gap-1.5 hover:bg-primary/10 transition-all"
+              className="hidden md:flex hover:bg-primary/10 transition-all"
             >
               {theme === "light" ? (
                 <Moon className="h-4 w-4" />
@@ -397,31 +454,31 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
               )}
             </Button>
 
-            {/* New Timetable Button - Desktop only */}
+            {/* New Timetable Button */}
             {onNewTimetable && (
               <Button
                 variant="default"
                 size="sm"
                 onClick={onNewTimetable}
-                className="hidden xl:flex gap-1.5 px-3 whitespace-nowrap"
+                className="hidden sm:flex gap-1.5 px-3 whitespace-nowrap"
               >
                 <Sparkles className="h-4 w-4" />
                 <span className="font-semibold text-sm">New Timetable</span>
               </Button>
             )}
 
-            {/* Mobile Menu Button */}
+            {/* Mobile/Tablet Menu Button - Shows on screens smaller than lg */}
             <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="xl:hidden"
+                  size="icon"
+                  className="lg:hidden"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[320px] overflow-y-auto">
+              <SheetContent side="right" className="w-[280px] sm:w-[320px] overflow-y-auto bg-background">
                 <SheetHeader>
                   <SheetTitle className="text-left gradient-text">Navigation</SheetTitle>
                 </SheetHeader>
