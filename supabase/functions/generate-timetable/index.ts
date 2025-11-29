@@ -1116,7 +1116,7 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
             messages: [
               { role: "user", content: `INSTRUCTIONS: You are an expert educational planner specializing in GCSE revision strategies. Return ONLY valid JSON with no markdown formatting, no code fences, no additional text. Your response must start with { and end with }. CRITICAL: Ensure the JSON is complete with all closing braces and brackets.\n\nTASK:\n${prompt}` }
             ],
-            max_tokens: 8192,
+            max_tokens: 65536,
           }),
           signal: controller.signal,
         }
