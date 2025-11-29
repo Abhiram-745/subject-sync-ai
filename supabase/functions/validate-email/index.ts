@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// List of known disposable email domains
+// List of known disposable email domains (backup list)
 const DISPOSABLE_DOMAINS = [
   "mailinator.com", "10minutemail.com", "guerrillamail.com", "tempmail.com",
   "throwaway.email", "fakeinbox.com", "maildrop.cc", "yopmail.com",
@@ -100,9 +100,9 @@ serve(async (req) => {
       );
     }
 
-    // Check disposable domain
+    // Check disposable domain (backup list)
     if (DISPOSABLE_DOMAINS.includes(domain)) {
-      console.log(`[validate-email] Disposable domain detected: ${domain}`);
+      console.log(`[validate-email] Disposable domain detected (backup list): ${domain}`);
       return new Response(
         JSON.stringify({
           isValid: false,
@@ -137,38 +137,24 @@ serve(async (req) => {
       confidence -= 25;
     }
 
-    // Use AbstractAPI for email validation
-    const ABSTRACTAPI_KEY = Deno.env.get("ABSTRACTAPI_KEY");
+    // Use API Ninjas for email validation (100k+ disposable domain database)
+    const API_NINJAS_KEY = Deno.env.get("API_NINJAS_KEY");
     
-    if (ABSTRACTAPI_KEY) {
+    if (API_NINJAS_KEY) {
       try {
-        console.log(`[validate-email] Calling AbstractAPI for: ${emailLower}`);
-        const abstractResponse = await fetch(
-          `https://emailvalidation.abstractapi.com/v1/?api_key=${ABSTRACTAPI_KEY}&email=${encodeURIComponent(emailLower)}`
+        // 1. Check if disposable email using API Ninjas (large database of 100k+ domains)
+        console.log(`[validate-email] Calling API Ninjas disposable check for: ${emailLower}`);
+        const disposableResponse = await fetch(
+          `https://api.api-ninjas.com/v1/disposableemail?email=${encodeURIComponent(emailLower)}`,
+          { headers: { "X-Api-Key": API_NINJAS_KEY } }
         );
 
-        if (abstractResponse.ok) {
-          const abstractData = await abstractResponse.json();
-          console.log(`[validate-email] AbstractAPI response:`, JSON.stringify(abstractData));
-
-          // Check deliverability
-          if (abstractData.deliverability === "UNDELIVERABLE") {
-            console.log(`[validate-email] Email undeliverable: ${emailLower}`);
-            return new Response(
-              JSON.stringify({
-                isValid: false,
-                isBanned: false,
-                reason: "This email address appears to be undeliverable. Please use a valid email address.",
-                confidence: 100,
-                flags: ["undeliverable"]
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          // Check if disposable (AbstractAPI detection)
-          if (abstractData.is_disposable_email?.value === true) {
-            console.log(`[validate-email] AbstractAPI detected disposable email: ${emailLower}`);
+        if (disposableResponse.ok) {
+          const disposableData = await disposableResponse.json();
+          console.log(`[validate-email] API Ninjas disposable response:`, JSON.stringify(disposableData));
+          
+          if (disposableData.is_disposable === true) {
+            console.log(`[validate-email] API Ninjas detected disposable email: ${emailLower}`);
             return new Response(
               JSON.stringify({
                 isValid: false,
@@ -180,51 +166,64 @@ serve(async (req) => {
               { headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
+        } else {
+          console.error(`[validate-email] API Ninjas disposable check error: ${disposableResponse.status}`);
+        }
 
-          // Check quality score (if below 0.5, flag it)
-          if (abstractData.quality_score !== undefined && abstractData.quality_score < 0.5) {
-            flags.push("low_quality_score");
+        // 2. Validate email format and DNS using API Ninjas
+        console.log(`[validate-email] Calling API Ninjas validate for: ${emailLower}`);
+        const validateResponse = await fetch(
+          `https://api.api-ninjas.com/v1/validateemail?email=${encodeURIComponent(emailLower)}`,
+          { headers: { "X-Api-Key": API_NINJAS_KEY } }
+        );
+
+        if (validateResponse.ok) {
+          const validateData = await validateResponse.json();
+          console.log(`[validate-email] API Ninjas validate response:`, JSON.stringify(validateData));
+          
+          // Check if email is valid
+          if (validateData.is_valid === false) {
+            console.log(`[validate-email] API Ninjas detected invalid email: ${emailLower}`);
+            return new Response(
+              JSON.stringify({
+                isValid: false,
+                isBanned: false,
+                reason: "This email address appears to be invalid. Please check and try again.",
+                confidence: 100,
+                flags: ["invalid_email"]
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          // Check DNS/MX records
+          if (validateData.is_mx_found === false) {
+            flags.push("no_mx_records");
             confidence -= 30;
-            console.log(`[validate-email] Low quality score (${abstractData.quality_score}) for: ${emailLower}`);
+            console.log(`[validate-email] No MX records for: ${emailLower}`);
           }
 
-          // Check SMTP validity
-          if (abstractData.is_smtp_valid?.value === false) {
+          // Check if it's a free email provider (not necessarily bad, just flag it)
+          if (validateData.is_free === true) {
+            console.log(`[validate-email] Free email provider: ${emailLower}`);
+          }
+
+          // Check if SMTP is valid
+          if (validateData.is_smtp_valid === false) {
             flags.push("smtp_invalid");
             confidence -= 25;
             console.log(`[validate-email] SMTP invalid for: ${emailLower}`);
           }
 
-          // Check if it's a valid format
-          if (abstractData.is_valid_format?.value === false) {
-            console.log(`[validate-email] Invalid format: ${emailLower}`);
-            return new Response(
-              JSON.stringify({
-                isValid: false,
-                isBanned: false,
-                reason: "This email address has an invalid format. Please check and try again.",
-                confidence: 100,
-                flags: ["invalid_format"]
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          // Check if MX records exist
-          if (abstractData.is_mx_found?.value === false) {
-            flags.push("no_mx_records");
-            confidence -= 20;
-            console.log(`[validate-email] No MX records for: ${emailLower}`);
-          }
-
         } else {
-          console.error(`[validate-email] AbstractAPI error: ${abstractResponse.status}`);
+          console.error(`[validate-email] API Ninjas validate error: ${validateResponse.status}`);
         }
-      } catch (abstractError) {
-        console.error("[validate-email] AbstractAPI error:", abstractError);
+
+      } catch (apiError) {
+        console.error("[validate-email] API Ninjas error:", apiError);
       }
     } else {
-      console.log("[validate-email] AbstractAPI key not configured, skipping external validation");
+      console.log("[validate-email] API Ninjas key not configured, skipping external validation");
     }
 
     // Use Open Router AI for deeper analysis if flags exist and confidence is borderline
