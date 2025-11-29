@@ -145,7 +145,7 @@ serve(async (req) => {
         // 1. Check if disposable email using API Ninjas (large database of 100k+ domains)
         console.log(`[validate-email] Calling API Ninjas disposable check for: ${emailLower}`);
         const disposableResponse = await fetch(
-          `https://api.api-ninjas.com/v1/disposableemail?email=${encodeURIComponent(emailLower)}`,
+          `https://api.api-ninjas.com/v1/disposableemailchecker?email=${encodeURIComponent(emailLower)}`,
           { headers: { "X-Api-Key": API_NINJAS_KEY } }
         );
 
