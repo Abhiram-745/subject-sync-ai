@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -28,18 +28,12 @@ interface CalendarItem {
   data: any;
 }
 
-// Time slots for the grid (6 AM to 10 PM)
-const TIME_SLOTS = Array.from({ length: 17 }, (_, i) => {
-  const hour = i + 6;
-  return `${hour.toString().padStart(2, '0')}:00`;
-});
-
-const HOUR_HEIGHT = 60; // pixels per hour
+const HOUR_HEIGHT = 80; // Increased from 60 to 80 pixels per hour for better spacing
 
 // Calculate position and height based on time
-const getTimePosition = (time: string) => {
+const getTimePosition = (time: string, startHour: number) => {
   const [hours, minutes] = time.split(':').map(Number);
-  const totalMinutes = (hours - 6) * 60 + minutes;
+  const totalMinutes = (hours - startHour) * 60 + minutes;
   return (totalMinutes / 60) * HOUR_HEIGHT;
 };
 
@@ -47,7 +41,7 @@ const getSessionHeight = (startTime: string, endTime: string) => {
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);
   const durationMinutes = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
-  return Math.max((durationMinutes / 60) * HOUR_HEIGHT, 30);
+  return Math.max((durationMinutes / 60) * HOUR_HEIGHT, 40); // Min height increased
 };
 
 // Get styles for different item types
@@ -71,8 +65,8 @@ const getItemStyles = (item: CalendarItem) => {
   return { bg: "bg-blue-500", text: "text-white", icon: <BookOpen className="h-3 w-3" /> };
 };
 
-// Draggable session item for time-based grid
-const DraggableSession = ({ item }: { item: CalendarItem }) => {
+// Draggable session item - ONLY for study sessions
+const DraggableSession = ({ item, startHour }: { item: CalendarItem; startHour: number }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id,
     data: item,
@@ -80,14 +74,14 @@ const DraggableSession = ({ item }: { item: CalendarItem }) => {
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    top: `${getTimePosition(item.startTime)}px`,
+    top: `${getTimePosition(item.startTime, startHour)}px`,
     height: `${getSessionHeight(item.startTime, item.endTime)}px`,
     opacity: isDragging ? 0.5 : 1,
   };
 
   const styles = getItemStyles(item);
   const height = getSessionHeight(item.startTime, item.endTime);
-  const isCompact = height < 50;
+  const isCompact = height < 60;
 
   return (
     <HoverCard openDelay={300}>
@@ -97,22 +91,22 @@ const DraggableSession = ({ item }: { item: CalendarItem }) => {
           style={style}
           {...listeners}
           {...attributes}
-          className={`absolute left-1 right-1 rounded-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg hover:z-20 ${styles.bg} ${styles.text} px-2 py-1 overflow-hidden shadow-sm`}
+          className={`absolute left-2 right-2 rounded-xl cursor-grab active:cursor-grabbing transition-all hover:shadow-xl hover:z-20 ${styles.bg} ${styles.text} px-3 py-2 overflow-hidden shadow-md border border-white/20`}
         >
           {isCompact ? (
-            <div className="flex items-center gap-1 h-full">
+            <div className="flex items-center gap-2 h-full">
               {styles.icon}
-              <p className="text-[10px] font-medium truncate flex-1">{item.title}</p>
+              <p className="text-xs font-medium truncate flex-1">{item.title}</p>
             </div>
           ) : (
-            <div className="flex flex-col h-full">
-              <div className="flex items-center gap-1">
+            <div className="flex flex-col h-full gap-1">
+              <div className="flex items-center gap-2">
                 {styles.icon}
-                <p className="text-xs font-semibold truncate">{item.title}</p>
+                <p className="text-sm font-semibold truncate">{item.title}</p>
               </div>
-              <p className="text-[10px] opacity-80 mt-0.5">{item.startTime} - {item.endTime}</p>
+              <p className="text-xs opacity-80">{item.startTime} - {item.endTime}</p>
               {item.data?.subject && (
-                <p className="text-[10px] opacity-70 truncate">{item.data.subject}</p>
+                <p className="text-xs opacity-70 truncate">{item.data.subject}</p>
               )}
             </div>
           )}
@@ -120,13 +114,79 @@ const DraggableSession = ({ item }: { item: CalendarItem }) => {
       </HoverCardTrigger>
       <HoverCardContent className="w-72 p-4 bg-card/95 backdrop-blur-sm z-50" side="right" align="start">
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className={`p-2 rounded-lg ${styles.bg}`}>
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl ${styles.bg}`}>
               {styles.icon}
             </div>
             <div>
               <p className="text-sm font-bold text-foreground">{item.title}</p>
               <p className="text-xs text-muted-foreground capitalize">{item.data?.type || item.type}</p>
+            </div>
+          </div>
+          <div className="space-y-2 pt-2 border-t">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{item.startTime} - {item.endTime}</span>
+            </div>
+            {item.data?.subject && (
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{item.data.subject}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+};
+
+// Static item for events and homework (NOT draggable)
+const StaticItem = ({ item, startHour }: { item: CalendarItem; startHour: number }) => {
+  const style = {
+    top: `${getTimePosition(item.startTime, startHour)}px`,
+    height: `${getSessionHeight(item.startTime, item.endTime)}px`,
+  };
+
+  const styles = getItemStyles(item);
+  const height = getSessionHeight(item.startTime, item.endTime);
+  const isCompact = height < 60;
+
+  return (
+    <HoverCard openDelay={300}>
+      <HoverCardTrigger asChild>
+        <div
+          style={style}
+          className={`absolute left-2 right-2 rounded-xl transition-all hover:shadow-xl hover:z-20 ${styles.bg} ${styles.text} px-3 py-2 overflow-hidden shadow-md border border-white/20`}
+        >
+          {isCompact ? (
+            <div className="flex items-center gap-2 h-full">
+              {styles.icon}
+              <p className="text-xs font-medium truncate flex-1">{item.title}</p>
+            </div>
+          ) : (
+            <div className="flex flex-col h-full gap-1">
+              <div className="flex items-center gap-2">
+                {styles.icon}
+                <p className="text-sm font-semibold truncate">{item.title}</p>
+              </div>
+              <p className="text-xs opacity-80">{item.startTime} - {item.endTime}</p>
+              {item.data?.subject && (
+                <p className="text-xs opacity-70 truncate">{item.data.subject}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-72 p-4 bg-card/95 backdrop-blur-sm z-50" side="right" align="start">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl ${styles.bg}`}>
+              {styles.icon}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">{item.title}</p>
+              <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
             </div>
           </div>
           <div className="space-y-2 pt-2 border-t">
@@ -154,7 +214,17 @@ const DraggableSession = ({ item }: { item: CalendarItem }) => {
 };
 
 // Droppable day column for time grid
-const DroppableDay = ({ date, items }: { date: Date; items: CalendarItem[] }) => {
+const DroppableDay = ({ 
+  date, 
+  items, 
+  timeSlots, 
+  startHour 
+}: { 
+  date: Date; 
+  items: CalendarItem[]; 
+  timeSlots: string[];
+  startHour: number;
+}) => {
   const { isOver, setNodeRef } = useDroppable({
     id: format(date, "yyyy-MM-dd"),
     data: { date },
@@ -166,32 +236,36 @@ const DroppableDay = ({ date, items }: { date: Date; items: CalendarItem[] }) =>
   return (
     <div
       ref={setNodeRef}
-      className={`relative flex-1 min-w-[100px] border-r border-border/30 last:border-r-0 transition-colors ${
+      className={`relative flex-1 min-w-[120px] bg-background transition-colors ${
         isOver ? "bg-primary/10" : ""
       }`}
-      style={{ height: `${TIME_SLOTS.length * HOUR_HEIGHT}px` }}
+      style={{ height: `${timeSlots.length * HOUR_HEIGHT}px` }}
     >
       {/* Time slot lines */}
-      {TIME_SLOTS.map((_, i) => (
+      {timeSlots.map((_, i) => (
         <div
           key={i}
-          className="absolute left-0 right-0 border-t border-border/20"
+          className="absolute left-0 right-0 border-t border-border/30"
           style={{ top: `${i * HOUR_HEIGHT}px` }}
         />
       ))}
       
-      {/* Sessions */}
-      {dayItems.map((item) => (
-        <DraggableSession key={item.id} item={item} />
-      ))}
+      {/* Sessions - draggable for sessions, static for events/homework */}
+      {dayItems.map((item) => 
+        item.type === "session" ? (
+          <DraggableSession key={item.id} item={item} startHour={startHour} />
+        ) : (
+          <StaticItem key={item.id} item={item} startHour={startHour} />
+        )
+      )}
       
       {/* Current time indicator */}
       {isToday && (
         <div
           className="absolute left-0 right-0 h-0.5 bg-red-500 z-30 pointer-events-none"
-          style={{ top: `${getTimePosition(format(new Date(), 'HH:mm'))}px` }}
+          style={{ top: `${getTimePosition(format(new Date(), 'HH:mm'), startHour)}px` }}
         >
-          <div className="absolute -left-1 -top-1 w-2.5 h-2.5 rounded-full bg-red-500" />
+          <div className="absolute -left-1.5 -top-1.5 w-3.5 h-3.5 rounded-full bg-red-500 shadow-md" />
         </div>
       )}
     </div>
@@ -206,7 +280,16 @@ const CalendarView = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [timetables, setTimetables] = useState<any[]>([]);
   const [selectedTimetableId, setSelectedTimetableId] = useState<string>("");
+  const [timeRange, setTimeRange] = useState({ startHour: 8, endHour: 22 });
   const { viewedSections, handleSectionClick } = useSectionTour("calendar");
+
+  // Generate time slots dynamically based on time range
+  const timeSlots = useMemo(() => 
+    Array.from({ length: timeRange.endHour - timeRange.startHour + 1 }, (_, i) => {
+      const hour = i + timeRange.startHour;
+      return `${hour.toString().padStart(2, '0')}:00`;
+    }), [timeRange]
+  );
 
   useEffect(() => {
     fetchTimetables();
@@ -262,6 +345,40 @@ const CalendarView = () => {
 
       const weekStart = format(currentWeek, "yyyy-MM-dd");
       const weekEnd = format(addDays(currentWeek, 6), "yyyy-MM-dd");
+
+      // Fetch study preferences to get dynamic time range
+      const { data: prefsData } = await supabase
+        .from("study_preferences")
+        .select("day_time_slots, preferred_start_time, preferred_end_time")
+        .eq("user_id", user.id)
+        .single();
+
+      if (prefsData) {
+        let earliestStart = 9;
+        let latestEnd = 17;
+
+        if (prefsData.day_time_slots && Array.isArray(prefsData.day_time_slots)) {
+          const slots = prefsData.day_time_slots as any[];
+          const enabledSlots = slots.filter(s => s.enabled);
+          
+          if (enabledSlots.length > 0) {
+            earliestStart = Math.min(
+              ...enabledSlots.map(s => parseInt(s.startTime?.split(':')[0] || '9'))
+            );
+            latestEnd = Math.max(
+              ...enabledSlots.map(s => parseInt(s.endTime?.split(':')[0] || '17'))
+            );
+          }
+        } else if (prefsData.preferred_start_time && prefsData.preferred_end_time) {
+          earliestStart = parseInt(prefsData.preferred_start_time.split(':')[0]);
+          latestEnd = parseInt(prefsData.preferred_end_time.split(':')[0]);
+        }
+
+        setTimeRange({ 
+          startHour: Math.max(5, earliestStart - 1),  // 1 hour buffer, min 5 AM
+          endHour: Math.min(23, latestEnd + 1)        // 1 hour buffer, max 11 PM
+        });
+      }
 
       // Fetch events
       const { data: eventsData, error: eventsError } = await supabase
@@ -374,83 +491,55 @@ const CalendarView = () => {
     const draggedItem = calendarItems.find((item) => item.id === active.id);
     if (!draggedItem) return;
 
+    // Only allow dragging sessions
+    if (draggedItem.type !== "session") return;
+
     const newDate = over.id as string;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      if (draggedItem.type === "session") {
-        // Update timetable session
-        const { data: timetableData } = await supabase
-          .from("timetables")
-          .select("schedule")
-          .eq("id", selectedTimetableId)
-          .single();
+      // Update timetable session
+      const { data: timetableData } = await supabase
+        .from("timetables")
+        .select("schedule")
+        .eq("id", selectedTimetableId)
+        .single();
 
-        if (timetableData && timetableData.schedule) {
-          const schedule: Record<string, any[]> = JSON.parse(JSON.stringify(timetableData.schedule));
-          const oldDate = draggedItem.data.originalDate;
-          const sessionIndex = draggedItem.data.sessionIndex;
+      if (timetableData && timetableData.schedule) {
+        const schedule: Record<string, any[]> = JSON.parse(JSON.stringify(timetableData.schedule));
+        const oldDate = draggedItem.data.originalDate;
+        const sessionIndex = draggedItem.data.sessionIndex;
 
-          // Remove from old date
-          if (schedule[oldDate]) {
-            schedule[oldDate] = schedule[oldDate].filter((_: any, i: number) => i !== sessionIndex);
-            if (schedule[oldDate].length === 0) {
-              delete schedule[oldDate];
-            }
+        // Remove from old date
+        if (schedule[oldDate]) {
+          schedule[oldDate] = schedule[oldDate].filter((_: any, i: number) => i !== sessionIndex);
+          if (schedule[oldDate].length === 0) {
+            delete schedule[oldDate];
           }
-
-          // Add to new date
-          if (!schedule[newDate]) {
-            schedule[newDate] = [];
-          }
-          const sessionData = draggedItem.data;
-          schedule[newDate].push({
-            time: draggedItem.startTime,
-            subject: sessionData.subject || "",
-            topic: sessionData.topic || "",
-            duration: sessionData.duration || 60,
-            type: sessionData.type || "revision",
-            notes: sessionData.notes || "",
-          });
-
-          await supabase
-            .from("timetables")
-            .update({ schedule })
-            .eq("id", selectedTimetableId);
-
-          toast.success("Session rescheduled successfully");
-          fetchCalendarData();
         }
-      } else if (draggedItem.type === "event") {
-        // Update event
-        const eventId = draggedItem.data.id;
-        const [hours, minutes] = draggedItem.startTime.split(":").map(Number);
-        const newStart = new Date(newDate);
-        newStart.setHours(hours, minutes, 0, 0);
-        
-        const duration = (parseISO(draggedItem.data.end_time).getTime() - parseISO(draggedItem.data.start_time).getTime()) / 1000 / 60;
-        const newEnd = addMinutes(newStart, duration);
+
+        // Add to new date
+        if (!schedule[newDate]) {
+          schedule[newDate] = [];
+        }
+        const sessionData = draggedItem.data;
+        schedule[newDate].push({
+          time: draggedItem.startTime,
+          subject: sessionData.subject || "",
+          topic: sessionData.topic || "",
+          duration: sessionData.duration || 60,
+          type: sessionData.type || "revision",
+          notes: sessionData.notes || "",
+        });
 
         await supabase
-          .from("events")
-          .update({
-            start_time: newStart.toISOString(),
-            end_time: newEnd.toISOString(),
-          })
-          .eq("id", eventId);
+          .from("timetables")
+          .update({ schedule })
+          .eq("id", selectedTimetableId);
 
-        toast.success("Event rescheduled successfully");
-        fetchCalendarData();
-      } else if (draggedItem.type === "homework") {
-        // Update homework due date
-        await supabase
-          .from("homeworks")
-          .update({ due_date: newDate })
-          .eq("id", draggedItem.data.id);
-
-        toast.success("Homework rescheduled successfully");
+        toast.success("Session rescheduled successfully");
         fetchCalendarData();
       }
     } catch (error) {
@@ -498,7 +587,7 @@ const CalendarView = () => {
         <GuidedOnboarding />
         <Header />
         
-        <div className="p-4 md:p-6 space-y-4">
+        <div className="p-4 md:p-6 space-y-5">
           {/* Header with navigation */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -517,7 +606,7 @@ const CalendarView = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2 flex-wrap" data-tour="week-navigation">
+            <div className="flex items-center gap-3 flex-wrap" data-tour="week-navigation">
               {timetables.length > 0 && (
                 <Select value={selectedTimetableId} onValueChange={setSelectedTimetableId}>
                   <SelectTrigger className="w-[180px]" data-tour="timetable-select">
@@ -533,7 +622,7 @@ const CalendarView = () => {
                 </Select>
               )}
               
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
                   size="icon"
@@ -560,36 +649,36 @@ const CalendarView = () => {
           </div>
 
           {/* Legend at the top */}
-          <Card data-tour="calendar-legend">
-            <CardContent className="py-3 px-4">
+          <Card data-tour="calendar-legend" className="bg-card/80 backdrop-blur-sm">
+            <CardContent className="py-3 px-5">
               <div className="flex flex-wrap items-center gap-4 text-sm">
-                <span className="font-medium text-muted-foreground">Legend:</span>
+                <span className="font-semibold text-foreground">Legend:</span>
                 <div className="flex items-center gap-1.5">
-                  <Badge className="bg-blue-500 hover:bg-blue-500 gap-1">
+                  <Badge className="bg-blue-500 hover:bg-blue-500 gap-1.5 px-2.5 py-1">
                     <BookOpen className="h-3 w-3" />
                     Revision
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Badge className="bg-purple-500 hover:bg-purple-500 gap-1">
+                  <Badge className="bg-purple-500 hover:bg-purple-500 gap-1.5 px-2.5 py-1">
                     <FileText className="h-3 w-3" />
                     Homework
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Badge className="bg-red-500 hover:bg-red-500 gap-1">
+                  <Badge className="bg-red-500 hover:bg-red-500 gap-1.5 px-2.5 py-1">
                     <AlertCircle className="h-3 w-3" />
                     Events
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Badge className="bg-orange-500 hover:bg-orange-500 gap-1">
+                  <Badge className="bg-orange-500 hover:bg-orange-500 gap-1.5 px-2.5 py-1">
                     <Target className="h-3 w-3" />
                     Test Prep
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Badge className="bg-slate-400 hover:bg-slate-400 gap-1">
+                  <Badge className="bg-slate-400 hover:bg-slate-400 gap-1.5 px-2.5 py-1">
                     <Coffee className="h-3 w-3" />
                     Break
                   </Badge>
@@ -599,73 +688,79 @@ const CalendarView = () => {
           </Card>
 
           {/* Calendar Grid */}
-          <Card className="overflow-hidden" data-tour="time-grid">
+          <Card className="overflow-hidden shadow-lg" data-tour="time-grid">
             {/* Day Headers */}
-            <div className="flex border-b bg-muted/30 sticky top-0 z-20">
-              {/* Time column header */}
-              <div className="w-16 flex-shrink-0 border-r border-border/30 p-2 text-center">
-                <Clock className="h-4 w-4 mx-auto text-muted-foreground" />
+            <div className="flex border-b-2 border-border/50 bg-muted/40 sticky top-0 z-20">
+              {/* Time column header - wider */}
+              <div className="w-20 flex-shrink-0 border-r border-border/40 p-3 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-muted-foreground" />
               </div>
-              {/* Day columns headers */}
-              {weekDays.map((day) => {
-                const isToday = isSameDay(day, new Date());
-                return (
-                  <div
-                    key={format(day, "yyyy-MM-dd")}
-                    className={`flex-1 min-w-[100px] text-center py-2 px-1 border-r border-border/30 last:border-r-0 ${
-                      isToday ? "bg-primary/10" : ""
-                    }`}
-                  >
-                    <p className={`text-xs font-medium uppercase tracking-wide ${
-                      isToday ? "text-primary" : "text-muted-foreground"
-                    }`}>
-                      {format(day, "EEE")}
-                    </p>
-                    <p className={`text-lg font-bold mt-0.5 ${
-                      isToday 
-                        ? "bg-primary text-primary-foreground rounded-full w-8 h-8 mx-auto flex items-center justify-center" 
-                        : ""
-                    }`}>
-                      {format(day, "d")}
-                    </p>
-                  </div>
-                );
-              })}
+              {/* Day columns headers with gaps */}
+              <div className="flex flex-1 gap-px bg-border/30">
+                {weekDays.map((day) => {
+                  const isToday = isSameDay(day, new Date());
+                  return (
+                    <div
+                      key={format(day, "yyyy-MM-dd")}
+                      className={`flex-1 min-w-[120px] text-center py-3 px-2 bg-background ${
+                        isToday ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <p className={`text-xs font-semibold uppercase tracking-wider ${
+                        isToday ? "text-primary" : "text-muted-foreground"
+                      }`}>
+                        {format(day, "EEE")}
+                      </p>
+                      <p className={`text-xl font-bold mt-1 ${
+                        isToday 
+                          ? "bg-primary text-primary-foreground rounded-full w-9 h-9 mx-auto flex items-center justify-center" 
+                          : ""
+                      }`}>
+                        {format(day, "d")}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Time Grid */}
-            <ScrollArea className="h-[calc(100vh-320px)]">
+            <ScrollArea className="h-[calc(100vh-340px)]">
               <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="flex">
-                  {/* Time axis */}
-                  <div className="w-16 flex-shrink-0 border-r border-border/30 bg-muted/10">
-                    {TIME_SLOTS.map((time) => (
+                  {/* Time axis - wider */}
+                  <div className="w-20 flex-shrink-0 border-r border-border/40 bg-muted/20">
+                    {timeSlots.map((time) => (
                       <div
                         key={time}
-                        className="text-[11px] text-muted-foreground text-right pr-2 relative"
+                        className="text-xs font-medium text-muted-foreground text-right pr-3 relative"
                         style={{ height: `${HOUR_HEIGHT}px` }}
                       >
-                        <span className="absolute -top-2 right-2">
+                        <span className="absolute -top-2.5 right-3">
                           {format(parseISO(`2024-01-01T${time}`), "h a")}
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Day columns */}
-                  <div className="flex flex-1">
+                  {/* Day columns with gaps */}
+                  <div className="flex flex-1 gap-px bg-border/30">
                     {weekDays.map((day) => (
                       <DroppableDay
                         key={format(day, "yyyy-MM-dd")}
                         date={day}
                         items={calendarItems}
+                        timeSlots={timeSlots}
+                        startHour={timeRange.startHour}
                       />
                     ))}
                   </div>
                 </div>
                 
                 <DragOverlay>
-                  {activeItem ? <DraggableSession item={activeItem} /> : null}
+                  {activeItem && activeItem.type === "session" ? (
+                    <DraggableSession item={activeItem} startHour={timeRange.startHour} />
+                  ) : null}
                 </DragOverlay>
               </DndContext>
             </ScrollArea>
