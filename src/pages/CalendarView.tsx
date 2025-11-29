@@ -28,7 +28,7 @@ interface CalendarItem {
   data: any;
 }
 
-const HOUR_HEIGHT = 80; // Increased from 60 to 80 pixels per hour for better spacing
+const HOUR_HEIGHT = 100; // Increased to 100 pixels per hour for better spacing and visibility
 
 // Calculate position and height based on time
 const getTimePosition = (time: string, startHour: number) => {
@@ -41,7 +41,10 @@ const getSessionHeight = (startTime: string, endTime: string) => {
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);
   const durationMinutes = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
-  return Math.max((durationMinutes / 60) * HOUR_HEIGHT, 40); // Min height increased
+  const calculatedHeight = (durationMinutes / 60) * HOUR_HEIGHT;
+  // Subtract 6px from height to create visual gap between consecutive sessions
+  const visualGap = 6;
+  return Math.max(calculatedHeight - visualGap, 36); // Min height 36px to keep short sessions visible
 };
 
 // Get styles for different item types
@@ -81,7 +84,8 @@ const DraggableSession = ({ item, startHour }: { item: CalendarItem; startHour: 
 
   const styles = getItemStyles(item);
   const height = getSessionHeight(item.startTime, item.endTime);
-  const isCompact = height < 60;
+  const isBreak = item.data?.type === 'break';
+  const isCompact = height < 50;
 
   return (
     <HoverCard openDelay={300}>
@@ -91,7 +95,7 @@ const DraggableSession = ({ item, startHour }: { item: CalendarItem; startHour: 
           style={style}
           {...listeners}
           {...attributes}
-          className={`absolute left-2 right-2 rounded-xl cursor-grab active:cursor-grabbing transition-all hover:shadow-xl hover:z-20 ${styles.bg} ${styles.text} px-3 py-2 overflow-hidden shadow-md border border-white/20`}
+          className={`absolute left-2 right-2 rounded-xl cursor-grab active:cursor-grabbing transition-all hover:shadow-xl hover:z-20 ${styles.bg} ${styles.text} px-3 py-2 overflow-hidden shadow-md border border-white/20 ${isBreak ? 'z-10' : 'z-0'}`}
         >
           {isCompact ? (
             <div className="flex items-center gap-2 h-full">
@@ -150,14 +154,15 @@ const StaticItem = ({ item, startHour }: { item: CalendarItem; startHour: number
 
   const styles = getItemStyles(item);
   const height = getSessionHeight(item.startTime, item.endTime);
-  const isCompact = height < 60;
+  const isCompact = height < 50;
+  const isBreak = item.data?.type === 'break';
 
   return (
     <HoverCard openDelay={300}>
       <HoverCardTrigger asChild>
         <div
           style={style}
-          className={`absolute left-2 right-2 rounded-xl transition-all hover:shadow-xl hover:z-20 ${styles.bg} ${styles.text} px-3 py-2 overflow-hidden shadow-md border border-white/20`}
+          className={`absolute left-2 right-2 rounded-xl transition-all hover:shadow-xl hover:z-20 ${styles.bg} ${styles.text} px-3 py-2 overflow-hidden shadow-md border border-white/20 ${isBreak ? 'z-10' : 'z-0'}`}
         >
           {isCompact ? (
             <div className="flex items-center gap-2 h-full">
