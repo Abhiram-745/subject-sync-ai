@@ -107,7 +107,7 @@ serve(async (req) => {
         JSON.stringify({
           isValid: false,
           isBanned: false,
-          reason: "Disposable email addresses are not allowed.",
+          reason: "This email isn't eligible for referral rewards. Disposable email addresses are not allowed for referrals.",
           confidence: 100,
           flags: ["disposable_domain"]
         }),
@@ -137,22 +137,25 @@ serve(async (req) => {
       confidence -= 25;
     }
 
-    // Use Lovable AI for deeper analysis if flags exist
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (flags.length > 0 && LOVABLE_API_KEY) {
-      try {
-        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              {
-                role: "user",
-                content: `You are an email validation AI. Analyze if this email looks like a real person's email or a fake/temporary email created just for signing up. Consider:
+    // Use Open Router AI for deeper analysis if flags exist
+    if (flags.length > 0) {
+      const OPEN_ROUTER_API_KEY = Deno.env.get("OPEN_ROUTER_API_KEY");
+      
+      if (OPEN_ROUTER_API_KEY) {
+        try {
+          const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${OPEN_ROUTER_API_KEY}`,
+              "Content-Type": "application/json",
+              "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
+            },
+            body: JSON.stringify({
+              model: "google/gemma-3n-e4b-it:free",
+              messages: [
+                {
+                  role: "user",
+                  content: `You are an email validation AI. Analyze if this email looks like a real person's email or a fake/temporary email created just for signing up. Consider:
 1. Does the local part look like a real name or random characters?
 2. Is the domain a well-known email provider or suspicious?
 3. Are there patterns suggesting automation or spam?
@@ -160,30 +163,31 @@ serve(async (req) => {
 Respond with JSON only: {"isFake": boolean, "reason": "brief explanation"}
 
 Analyze this email: ${emailLower}`
-              }
-            ],
-          }),
-        });
+                }
+              ],
+            }),
+          });
 
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const content = aiData.choices?.[0]?.message?.content || "";
-          
-          try {
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const analysis = JSON.parse(jsonMatch[0]);
-              if (analysis.isFake) {
-                flags.push("ai_detected_fake");
-                confidence -= 40;
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const content = aiData.choices?.[0]?.message?.content || "";
+            
+            try {
+              const jsonMatch = content.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const analysis = JSON.parse(jsonMatch[0]);
+                if (analysis.isFake) {
+                  flags.push("ai_detected_fake");
+                  confidence -= 40;
+                }
               }
+            } catch (parseError) {
+              console.log("[validate-email] Could not parse AI response:", parseError);
             }
-          } catch (parseError) {
-            console.log("[validate-email] Could not parse AI response:", parseError);
           }
+        } catch (aiError) {
+          console.error("[validate-email] AI analysis error:", aiError);
         }
-      } catch (aiError) {
-        console.error("[validate-email] AI analysis error:", aiError);
       }
     }
 
@@ -198,7 +202,7 @@ Analyze this email: ${emailLower}`
         isBanned: false,
         reason: isValid 
           ? "Email appears legitimate" 
-          : "This email appears suspicious or temporary.",
+          : "This email isn't eligible for referral rewards. The email appears suspicious or temporary.",
         confidence,
         flags
       }),

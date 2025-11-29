@@ -148,59 +148,47 @@ Format your response as JSON with this structure:
   "overallSummary": "string"
 }`;
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
+    if (!OPEN_ROUTER_API_KEY) {
+      throw new Error("OPEN_ROUTER_API_KEY not configured");
     }
 
     const response = await fetch(
-      'https://ai.gateway.lovable.dev/v1/chat/completions',
+      'https://openrouter.ai/api/v1/chat/completions',
       {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
+          "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemma-3n-e4b-it:free",
           messages: [
             { role: "user", content: `You are an expert educational analyst who creates personalized learning insights.\n\n${prompt}` }
           ],
+          max_tokens: 4096,
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      throw new Error(`AI gateway request failed: ${response.status}`);
+      console.error("OpenAI API error:", response.status, errorText);
+      throw new Error(`OpenAI API request failed: ${response.status}`);
     }
 
-    const aiResult = await response.json();
-    console.log('AI response:', JSON.stringify(aiResult, null, 2));
+    const openaiResult = await response.json();
+    console.log('OpenAI response:', JSON.stringify(openaiResult, null, 2));
 
-    // Extract content from AI response
+    // Extract content from OpenAI response
     let insightsText: string | undefined;
-    if (aiResult.choices?.[0]?.message?.content) {
-      insightsText = aiResult.choices[0].message.content;
+    if (openaiResult.choices?.[0]?.message?.content) {
+      insightsText = openaiResult.choices[0].message.content;
     }
 
     if (!insightsText || insightsText.trim() === "") {
-      console.error('Empty AI response. Raw result:', JSON.stringify(aiResult, null, 2));
+      console.error('Empty AI response. Raw result:', JSON.stringify(openaiResult, null, 2));
       throw new Error('AI did not generate a response. Please try again.');
     }
 

@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const { text, subjectName, images } = await req.json();
 
-    // Note: For image analysis, we'll need to use a vision-capable model
+    // Note: Gemma 3n is a text-only model - images are not supported
     if (images && Array.isArray(images) && images.length > 0 && !text) {
       return new Response(
         JSON.stringify({ 
@@ -28,7 +28,7 @@ serve(async (req) => {
       );
     }
 
-    // Build text prompt
+    // Build text prompt for Gemma (text-only model)
     let contentParts = `Subject: ${subjectName}\n\n`;
     if (text) {
       contentParts += `Extract topics from this text:\n${text}`;
@@ -58,21 +58,22 @@ Return ONLY valid JSON in this format:
   ]
 }`;
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
+    if (!OPEN_ROUTER_API_KEY) {
+      throw new Error("OPEN_ROUTER_API_KEY not configured");
     }
 
     const response = await fetch(
-      'https://ai.gateway.lovable.dev/v1/chat/completions',
+      'https://openrouter.ai/api/v1/chat/completions',
       {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
+          "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemma-3n-e4b-it:free",
           messages: [
             { role: "user", content: `${systemPrompt}\n\n${contentParts}` }
           ],
@@ -91,7 +92,7 @@ Return ONLY valid JSON in this format:
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please contact support." }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -100,17 +101,17 @@ Return ONLY valid JSON in this format:
       throw new Error(`AI gateway request failed: ${response.status}`);
     }
 
-    const aiResult = await response.json();
-    console.log('AI response:', JSON.stringify(aiResult, null, 2));
+    const openaiResult = await response.json();
+    console.log('OpenAI response:', JSON.stringify(openaiResult, null, 2));
 
-    // Extract content from AI response
+    // Extract content from OpenAI response
     let responseText: string | undefined;
-    if (aiResult.choices?.[0]?.message?.content) {
-      responseText = aiResult.choices[0].message.content;
+    if (openaiResult.choices?.[0]?.message?.content) {
+      responseText = openaiResult.choices[0].message.content;
     }
 
     if (!responseText || responseText.trim() === "") {
-      console.error('Empty AI response. Raw result:', JSON.stringify(aiResult, null, 2));
+      console.error('Empty AI response. Raw result:', JSON.stringify(openaiResult, null, 2));
       throw new Error('AI did not generate a response. Please try again.');
     }
 
