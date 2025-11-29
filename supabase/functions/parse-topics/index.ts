@@ -79,7 +79,12 @@ Do NOT include any explanation or commentary - ONLY the JSON.`;
     }
 
     // Using Bytez API with Gemini 2.5 Flash for image extraction
-    const BYTEZ_API_KEY = "840ecbd12ca7f2cfd93354ebb304535e";
+    const BYTEZ_API_KEY = Deno.env.get('BYTEZ_API_KEY');
+    
+    if (!BYTEZ_API_KEY) {
+      console.error("BYTEZ_API_KEY not configured");
+      throw new Error("AI service not configured. Please contact support.");
+    }
 
     console.log(`Calling Bytez API with ${messageContent.length} content parts (${images?.length || 0} images)`);
 
@@ -89,7 +94,7 @@ Do NOT include any explanation or commentary - ONLY the JSON.`;
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": BYTEZ_API_KEY
+          "Authorization": `Bearer ${BYTEZ_API_KEY}`
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",

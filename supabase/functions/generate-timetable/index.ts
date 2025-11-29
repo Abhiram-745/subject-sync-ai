@@ -1189,10 +1189,10 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large timetables
 
     // Using Bytez API with Gemini 2.5 Pro for timetable generation
-    const BYTEZ_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const BYTEZ_API_KEY = Deno.env.get('BYTEZ_API_KEY');
     
     if (!BYTEZ_API_KEY) {
-      console.error("GEMINI_API_KEY not configured");
+      console.error("BYTEZ_API_KEY not configured");
       throw new Error("AI service not configured. Please contact support.");
     }
 
