@@ -633,39 +633,36 @@ SCHEDULING STRATEGY:
     
     const strictTimeWindowContext = `
 🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
-🚨 ABSOLUTE RULE #1 - TIME WINDOWS (READ THIS FIRST!) 🚨
+🚨 ABSOLUTE RULE #1 - PER-DAY TIME WINDOWS (READ THIS FIRST!) 🚨
 🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
 
-YOU MUST ONLY SCHEDULE SESSIONS WITHIN THESE EXACT TIME WINDOWS:
+⚠️ EACH DAY HAS ITS OWN TIME WINDOW - RESPECT THEM INDIVIDUALLY! ⚠️
 
 ${enabledTimeSlots.map((slot: any) => {
   const dayName = slot.day.charAt(0).toUpperCase() + slot.day.slice(1);
-  return `📅 ${dayName.toUpperCase()}: 
-   🟢 START TIME: ${slot.startTime} (first session MUST be at ${slot.startTime} or later)
-   🔴 END TIME: ${slot.endTime} (last session+duration MUST finish by ${slot.endTime})
-   ❌ NEVER before ${slot.startTime}
-   ❌ NEVER after ${slot.endTime}`;
+  return `📅 ${dayName.toUpperCase()}: ${slot.startTime} to ${slot.endTime}
+   🟢 FIRST session on ${dayName}: MUST start at ${slot.startTime} or later
+   🔴 LAST session on ${dayName}: MUST finish by ${slot.endTime}
+   ❌ FORBIDDEN on ${dayName}: ANY session before ${slot.startTime}
+   ❌ FORBIDDEN on ${dayName}: ANY session ending after ${slot.endTime}
+   
+   ✅ EXAMPLE SCHEDULE FOR ${dayName.toUpperCase()} (${slot.startTime}-${slot.endTime}):
+      "${slot.startTime}" → First session (${actualSessionDuration} mins)
+      Break (${actualBreakDuration} mins)
+      Next session...
+      ...continue until ${slot.endTime}...`;
 }).join('\n\n')}
 
-❌❌❌ FORBIDDEN - WILL BE DELETED ❌❌❌
-- Starting ANY session before ${firstSlot.startTime} on any enabled day
-- Having a session end after ${firstSlot.endTime}
-- Using times like 08:00, 08:30 when window starts at ${firstSlot.startTime}!
+⚠️ CRITICAL: Different days have DIFFERENT time windows! ⚠️
+- Monday might be 09:00-17:00
+- Saturday might be 10:00-15:00
+- Always check THAT DAY'S specific start/end time before scheduling!
 
-✅✅✅ CORRECT EXAMPLE FOR ${firstSlot.day.toUpperCase()} ✅✅✅
-The user's window is ${firstSlot.startTime}-${firstSlot.endTime}, so:
-- FIRST session starts at: ${firstSlot.startTime} ← USE THIS EXACT TIME!
-- Each session is: ${actualSessionDuration} minutes
-- Each break is: ${actualBreakDuration} minutes
-- Keep scheduling sessions + breaks until ${firstSlot.endTime}
-
-SAMPLE SCHEDULE FOR ${firstSlot.startTime}-${firstSlot.endTime}:
-  "${firstSlot.startTime}" → Session (${actualSessionDuration} mins)
-  Break (${actualBreakDuration} mins)
-  Next session...
-  ...continue until you reach ${firstSlot.endTime}...
-
-🚨 IF YOU SCHEDULE A SESSION AT 08:00 OR BEFORE ${firstSlot.startTime}, IT WILL BE DELETED! 🚨
+❌❌❌ SESSIONS OUTSIDE TIME WINDOWS WILL BE AUTOMATICALLY DELETED ❌❌❌
+For each day, we validate:
+1. Session start time >= that day's startTime
+2. Session end time (start + duration) <= that day's endTime
+Sessions failing validation are REMOVED from the schedule!
 
 🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
 `;
