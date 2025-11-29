@@ -28,24 +28,37 @@ interface FocusTopic {
 
 const DifficultTopicsStep = ({ subjects, topics, setTopics, onAnalysisComplete, onSkip }: DifficultTopicsStepProps) => {
   const [focusTopics, setFocusTopics] = useState<FocusTopic[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedSubjectIndex, setSelectedSubjectIndex] = useState("");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [editingTopic, setEditingTopic] = useState<FocusTopic | null>(null);
   const [tempConfidence, setTempConfidence] = useState(5);
   const [tempDifficulties, setTempDifficulties] = useState("");
 
-  const getSubjectName = (subjectId: string) => {
-    const index = parseInt(subjectId);
-    return subjects[index]?.name || "";
+  // Get the actual subject_id (UUID if exists, otherwise index) - matches TopicsStep logic
+  const getSubjectId = (index: number) => {
+    const subject = subjects[index];
+    return subject?.id || index.toString();
   };
 
+  const getSubjectName = (subjectId: string) => {
+    // Try to find by UUID first
+    const subjectByUUID = subjects.find(s => s.id === subjectId);
+    if (subjectByUUID) return subjectByUUID.name;
+    // Fall back to index-based lookup for old data
+    const subject = subjects.find((s, i) => i.toString() === subjectId);
+    return subject?.name || "";
+  };
+
+  // Get the actual subject_id for filtering
+  const currentSubjectId = selectedSubjectIndex ? getSubjectId(parseInt(selectedSubjectIndex)) : "";
+
   const availableTopics = topics.filter(
-    (t) => t.subject_id === selectedSubject && !focusTopics.some(ft => ft.name === t.name)
+    (t) => t.subject_id === currentSubjectId && !focusTopics.some(ft => ft.name === t.name && ft.subjectId === t.subject_id)
   );
 
   const addFocusTopic = () => {
     if (selectedTopic) {
-      const topic = topics.find(t => t.name === selectedTopic && t.subject_id === selectedSubject);
+      const topic = topics.find(t => t.name === selectedTopic && t.subject_id === currentSubjectId);
       if (topic) {
         const newFocusTopic: FocusTopic = {
           name: topic.name,
@@ -141,7 +154,7 @@ const DifficultTopicsStep = ({ subjects, topics, setTopics, onAnalysisComplete, 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="subject-select">Select Subject</Label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <Select value={selectedSubjectIndex} onValueChange={setSelectedSubjectIndex}>
                 <SelectTrigger id="subject-select">
                   <SelectValue placeholder="Choose a subject" />
                 </SelectTrigger>
@@ -155,7 +168,7 @@ const DifficultTopicsStep = ({ subjects, topics, setTopics, onAnalysisComplete, 
               </Select>
             </div>
 
-            {selectedSubject && (
+            {selectedSubjectIndex && (
               <div className="space-y-2">
                 <Label htmlFor="topic-select">Select Topic</Label>
                 <Select
