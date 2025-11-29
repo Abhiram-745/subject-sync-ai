@@ -95,7 +95,7 @@ Do NOT include any explanation or commentary - ONLY the JSON.`;
           "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
         },
         body: JSON.stringify({
-          model: "qwen/qwen2.5-vl-72b-instruct:free",
+          model: "meta-llama/llama-4-maverick:free",
           messages: [
             { role: "user", content: messageContent }
           ],
