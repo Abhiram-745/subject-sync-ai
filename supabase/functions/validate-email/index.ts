@@ -107,7 +107,7 @@ serve(async (req) => {
         JSON.stringify({
           isValid: false,
           isBanned: false,
-          reason: "This email isn't eligible for referral rewards. Disposable email addresses are not allowed for referrals.",
+          reason: "Disposable email addresses are not allowed. Please use a permanent email address.",
           confidence: 100,
           flags: ["disposable_domain"]
         }),
@@ -137,8 +137,98 @@ serve(async (req) => {
       confidence -= 25;
     }
 
-    // Use Open Router AI for deeper analysis if flags exist
-    if (flags.length > 0) {
+    // Use AbstractAPI for email validation
+    const ABSTRACTAPI_KEY = Deno.env.get("ABSTRACTAPI_KEY");
+    
+    if (ABSTRACTAPI_KEY) {
+      try {
+        console.log(`[validate-email] Calling AbstractAPI for: ${emailLower}`);
+        const abstractResponse = await fetch(
+          `https://emailvalidation.abstractapi.com/v1/?api_key=${ABSTRACTAPI_KEY}&email=${encodeURIComponent(emailLower)}`
+        );
+
+        if (abstractResponse.ok) {
+          const abstractData = await abstractResponse.json();
+          console.log(`[validate-email] AbstractAPI response:`, JSON.stringify(abstractData));
+
+          // Check deliverability
+          if (abstractData.deliverability === "UNDELIVERABLE") {
+            console.log(`[validate-email] Email undeliverable: ${emailLower}`);
+            return new Response(
+              JSON.stringify({
+                isValid: false,
+                isBanned: false,
+                reason: "This email address appears to be undeliverable. Please use a valid email address.",
+                confidence: 100,
+                flags: ["undeliverable"]
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          // Check if disposable (AbstractAPI detection)
+          if (abstractData.is_disposable_email?.value === true) {
+            console.log(`[validate-email] AbstractAPI detected disposable email: ${emailLower}`);
+            return new Response(
+              JSON.stringify({
+                isValid: false,
+                isBanned: false,
+                reason: "Disposable email addresses are not allowed. Please use a permanent email address.",
+                confidence: 100,
+                flags: ["disposable_email"]
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          // Check quality score (if below 0.5, flag it)
+          if (abstractData.quality_score !== undefined && abstractData.quality_score < 0.5) {
+            flags.push("low_quality_score");
+            confidence -= 30;
+            console.log(`[validate-email] Low quality score (${abstractData.quality_score}) for: ${emailLower}`);
+          }
+
+          // Check SMTP validity
+          if (abstractData.is_smtp_valid?.value === false) {
+            flags.push("smtp_invalid");
+            confidence -= 25;
+            console.log(`[validate-email] SMTP invalid for: ${emailLower}`);
+          }
+
+          // Check if it's a valid format
+          if (abstractData.is_valid_format?.value === false) {
+            console.log(`[validate-email] Invalid format: ${emailLower}`);
+            return new Response(
+              JSON.stringify({
+                isValid: false,
+                isBanned: false,
+                reason: "This email address has an invalid format. Please check and try again.",
+                confidence: 100,
+                flags: ["invalid_format"]
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          // Check if MX records exist
+          if (abstractData.is_mx_found?.value === false) {
+            flags.push("no_mx_records");
+            confidence -= 20;
+            console.log(`[validate-email] No MX records for: ${emailLower}`);
+          }
+
+        } else {
+          console.error(`[validate-email] AbstractAPI error: ${abstractResponse.status}`);
+        }
+      } catch (abstractError) {
+        console.error("[validate-email] AbstractAPI error:", abstractError);
+      }
+    } else {
+      console.log("[validate-email] AbstractAPI key not configured, skipping external validation");
+    }
+
+    // Use Open Router AI for deeper analysis if flags exist and confidence is borderline
+    if (flags.length > 0 && confidence > 40 && confidence < 70) {
       const OPEN_ROUTER_API_KEY = Deno.env.get("OPEN_ROUTER_API_KEY");
       
       if (OPEN_ROUTER_API_KEY) {
@@ -202,7 +292,7 @@ Analyze this email: ${emailLower}`
         isBanned: false,
         reason: isValid 
           ? "Email appears legitimate" 
-          : "This email isn't eligible for referral rewards. The email appears suspicious or temporary.",
+          : "This email address appears to be invalid or suspicious. Please use a valid email address.",
         confidence,
         flags
       }),

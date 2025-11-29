@@ -41,6 +41,29 @@ const Auth = () => {
     }
   };
 
+  const validateEmail = async (emailToValidate: string): Promise<{ isValid: boolean; reason: string }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-email', {
+        body: { email: emailToValidate }
+      });
+
+      if (error) {
+        console.error("Email validation error:", error);
+        // Allow signup if validation fails (don't block user)
+        return { isValid: true, reason: "" };
+      }
+
+      return { 
+        isValid: data?.isValid ?? true, 
+        reason: data?.reason || "Email validation failed" 
+      };
+    } catch (error) {
+      console.error("Email validation error:", error);
+      // Allow signup if validation fails (don't block user)
+      return { isValid: true, reason: "" };
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -51,6 +74,16 @@ const Auth = () => {
       setLoading(false);
       toast.error("Account creation blocked", {
         description: banCheck.reason,
+      });
+      return;
+    }
+
+    // Validate email using AbstractAPI
+    const validationResult = await validateEmail(email);
+    if (!validationResult.isValid) {
+      setLoading(false);
+      toast.error("Invalid email address", {
+        description: validationResult.reason,
       });
       return;
     }
