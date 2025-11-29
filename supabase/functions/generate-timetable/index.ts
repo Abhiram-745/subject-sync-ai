@@ -532,7 +532,55 @@ SCHEDULING STRATEGY:
 
     const modeContext = getModeContext(timetableMode);
 
+    // Build STRICT time window context - this is the most critical constraint
+    const enabledTimeSlots = preferences.day_time_slots.filter((slot: any) => slot.enabled);
+    const strictTimeWindowContext = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🕐 MANDATORY TIME WINDOWS - MUST FOLLOW EXACTLY 🕐
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ CRITICAL: Sessions can ONLY be scheduled within these EXACT time windows:
+
+${enabledTimeSlots.map((slot: any) => {
+  const dayName = slot.day.charAt(0).toUpperCase() + slot.day.slice(1);
+  return `📅 ${dayName.toUpperCase()}: ${slot.startTime} to ${slot.endTime} ONLY
+   - First session MUST start at or after ${slot.startTime}
+   - Last session MUST END by ${slot.endTime}
+   - FILL THE ENTIRE WINDOW with sessions and breaks
+   - Window duration: calculate total available minutes and use them ALL`;
+}).join('\n\n')}
+
+🚫 FORBIDDEN SCHEDULING - WILL CAUSE FAILURE:
+- ❌ NEVER start a session before the day's start time
+- ❌ NEVER schedule a session that ends after the day's end time  
+- ❌ If user says 16:00-23:00, first session is at 16:00, last ends by 23:00
+- ❌ DO NOT schedule sessions at 09:00 if user's window starts at 16:00!
+- ❌ Sessions outside these windows will be DELETED
+
+✅ CORRECT SCHEDULING - FOLLOW THIS:
+- ✅ Check the START TIME for each day and begin sessions FROM THERE
+- ✅ Check the END TIME for each day and ensure last session ends BY THEN
+- ✅ Calculate: session_end_time = session_start_time + duration
+- ✅ Verify: session_end_time <= day's end time
+
+📋 TIME SLOT SUMMARY TABLE:
+${enabledTimeSlots.map((slot: any) => `| ${slot.day.toUpperCase().padEnd(10)} | Start: ${slot.startTime} | End: ${slot.endTime} |`).join('\n')}
+
+${enabledTimeSlots.length > 0 ? `
+🎯 EXAMPLE FOR ${enabledTimeSlots[0].day.toUpperCase()} (${enabledTimeSlots[0].startTime}-${enabledTimeSlots[0].endTime}):
+- ${enabledTimeSlots[0].startTime} - Session 1 (${preferences.session_duration} mins)
+- Add break (${preferences.break_duration} mins)
+- Next session starts after break
+- ... continue filling until ${enabledTimeSlots[0].endTime} ...
+- Final session must END at or before ${enabledTimeSlots[0].endTime}
+` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
     const prompt = `You are an expert study planner for GCSE students. Create a personalized revision timetable with the following details:
+
+${strictTimeWindowContext}
 
 ${modeContext}
 ${schoolHoursContext}
@@ -1258,6 +1306,75 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
         } else {
           console.log('✓ Schedule validation passed - no overlaps detected');
         }
+      }
+
+      // CRITICAL: Post-processing validation to enforce time windows
+      // This ensures sessions are ONLY within user's specified time slots
+      console.log('🕐 Starting time window validation...');
+      
+      // Build a map of day -> time window
+      const dayTimeWindows = new Map<string, { startTime: string; endTime: string }>();
+      preferences.day_time_slots.forEach((slot: any) => {
+        if (slot.enabled) {
+          dayTimeWindows.set(slot.day.toLowerCase(), {
+            startTime: slot.startTime,
+            endTime: slot.endTime
+          });
+        }
+      });
+      
+      console.log('Enabled time windows:', Object.fromEntries(dayTimeWindows));
+      
+      let timeWindowRemovedCount = 0;
+      
+      for (const [dateStr, sessions] of Object.entries(scheduleData.schedule)) {
+        if (!Array.isArray(sessions)) continue;
+        
+        const date = new Date(dateStr);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        const timeWindow = dayTimeWindows.get(dayName);
+        
+        if (!timeWindow) {
+          // Day not enabled - remove all sessions
+          console.log(`⚠️ Removing ${sessions.length} sessions on disabled day: ${dateStr} (${dayName})`);
+          timeWindowRemovedCount += sessions.length;
+          scheduleData.schedule[dateStr] = [];
+          continue;
+        }
+        
+        const [windowStartHour, windowStartMin] = timeWindow.startTime.split(':').map(Number);
+        const [windowEndHour, windowEndMin] = timeWindow.endTime.split(':').map(Number);
+        const windowStartMins = windowStartHour * 60 + windowStartMin;
+        const windowEndMins = windowEndHour * 60 + windowEndMin;
+        
+        scheduleData.schedule[dateStr] = (sessions as any[]).filter((session: any) => {
+          if (!session.time || !session.duration) return true;
+          
+          const [sessionHour, sessionMin] = session.time.split(':').map(Number);
+          const sessionStartMins = sessionHour * 60 + sessionMin;
+          const sessionEndMins = sessionStartMins + (session.duration || 0);
+          
+          // Check if session is within allowed window
+          if (sessionStartMins < windowStartMins) {
+            console.log(`🚫 REMOVED: Session starts too early on ${dateStr}: ${session.time} (window starts at ${timeWindow.startTime}) - ${session.subject || ''} ${session.topic || ''}`);
+            timeWindowRemovedCount++;
+            return false;
+          }
+          
+          if (sessionEndMins > windowEndMins) {
+            console.log(`🚫 REMOVED: Session ends too late on ${dateStr}: ${session.time} + ${session.duration}min ends at ${Math.floor(sessionEndMins/60)}:${String(sessionEndMins%60).padStart(2,'0')} (window ends at ${timeWindow.endTime}) - ${session.subject || ''} ${session.topic || ''}`);
+            timeWindowRemovedCount++;
+            return false;
+          }
+          
+          return true;
+        });
+      }
+      
+      if (timeWindowRemovedCount > 0) {
+        console.log(`🕐 Time window validation: ${timeWindowRemovedCount} sessions removed for being outside user's time windows`);
+      } else {
+        console.log('✓ Time window validation passed - all sessions within allowed windows');
       }
     } catch (parseError) {
       console.error("Failed to parse AI response:", aiResponse.substring(0, 500));
