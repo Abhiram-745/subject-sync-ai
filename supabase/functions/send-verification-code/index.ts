@@ -142,6 +142,16 @@ const handler = async (req: Request): Promise<Response> => {
         .delete()
         .eq("email", email.toLowerCase())
         .eq("code", code);
+      
+      // Check if it's a Resend testing mode limitation
+      const errorObj = emailError as any;
+      const errorMessage = errorObj.message || "";
+      if (errorObj.statusCode === 403 || errorMessage.includes("testing emails") || errorMessage.includes("verify a domain")) {
+        return new Response(
+          JSON.stringify({ error: "Email verification is currently in testing mode. Please contact support or use an approved email address." }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
         
       return new Response(
         JSON.stringify({ error: "Failed to send verification email. Please try again." }),
