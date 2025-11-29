@@ -166,6 +166,10 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
       .slice(0, 2);
   };
 
+  const isActivePath = (path: string) => location.pathname === path;
+  const moreDropdownPaths = ["/events", "/test-scores", "/social", "/ai-insights", "/admin"];
+  const isMoreActive = moreDropdownPaths.some(p => location.pathname === p);
+
   const NavigationItems = ({ onItemClick }: { onItemClick?: () => void }) => (
     <>
       <Button
@@ -175,7 +179,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <Home className="h-5 w-5 text-primary" />
         <span className="font-medium">Dashboard</span>
@@ -188,7 +194,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/timetables");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/timetables") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <Calendar className="h-5 w-5 text-primary" />
         <span className="font-medium">Timetables</span>
@@ -201,7 +209,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/calendar");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/calendar") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <CalendarClock className="h-5 w-5 text-primary" />
         <span className="font-medium">Calendar</span>
@@ -214,7 +224,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/homework");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/homework") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <ClipboardList className="h-5 w-5 text-primary" />
         <span className="font-medium">Homework</span>
@@ -227,7 +239,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/events");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/events") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <CalendarClock className="h-5 w-5 text-primary" />
         <span className="font-medium">Events</span>
@@ -240,7 +254,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/test-scores");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/test-scores") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <TrendingUp className="h-5 w-5 text-primary" />
         <span className="font-medium">Test Scores</span>
@@ -253,7 +269,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/groups");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/groups") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <Users className="h-5 w-5 text-primary" />
         <span className="font-medium">Study Groups</span>
@@ -266,7 +284,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/social");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/social") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <Users className="h-5 w-5 text-primary" />
         <span className="font-medium">Social</span>
@@ -279,7 +299,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           navigate("/ai-insights");
           onItemClick?.();
         }}
-        className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+        className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+          isActivePath("/ai-insights") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+        }`}
       >
         <Brain className="h-5 w-5 text-primary" />
         <span className="font-medium">AI Insights</span>
@@ -293,7 +315,9 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
             navigate("/admin");
             onItemClick?.();
           }}
-          className="justify-start gap-3 w-full px-3 py-3 hover:bg-primary/10 rounded-xl"
+          className={`justify-start gap-3 w-full px-3 py-3 rounded-xl transition-all ${
+            isActivePath("/admin") ? "bg-primary/15 text-primary font-semibold" : "hover:bg-primary/10"
+          }`}
         >
           <Crown className="h-5 w-5 text-amber-500" />
           <span className="font-medium">Admin Panel</span>
@@ -371,29 +395,58 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
 
           {/* Desktop Navigation - Hidden on mobile/tablet */}
           <nav className="hidden lg:flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-sm font-medium">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/")} 
+              className={`text-sm font-medium transition-all ${isActivePath("/") ? "bg-primary/15 text-primary" : ""}`}
+            >
               <Home className="h-4 w-4 mr-1.5" />
               Dashboard
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/timetables")} className="text-sm font-medium">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/timetables")} 
+              className={`text-sm font-medium transition-all ${isActivePath("/timetables") ? "bg-primary/15 text-primary" : ""}`}
+            >
               <Calendar className="h-4 w-4 mr-1.5" />
               Timetables
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/calendar")} className="text-sm font-medium">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/calendar")} 
+              className={`text-sm font-medium transition-all ${isActivePath("/calendar") ? "bg-primary/15 text-primary" : ""}`}
+            >
               <CalendarClock className="h-4 w-4 mr-1.5" />
               Calendar
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/homework")} className="text-sm font-medium">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/homework")} 
+              className={`text-sm font-medium transition-all ${isActivePath("/homework") ? "bg-primary/15 text-primary" : ""}`}
+            >
               <ClipboardList className="h-4 w-4 mr-1.5" />
               Homework
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/groups")} className="text-sm font-medium">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/groups")} 
+              className={`text-sm font-medium transition-all ${isActivePath("/groups") ? "bg-primary/15 text-primary" : ""}`}
+            >
               <Users className="h-4 w-4 mr-1.5" />
               Groups
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-sm font-medium">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`text-sm font-medium transition-all ${isMoreActive ? "bg-primary/15 text-primary" : ""}`}
+                >
                   More
                   <svg className="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -401,24 +454,39 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-popover border border-border shadow-lg z-50">
-                <DropdownMenuItem onClick={() => navigate("/events")} className="cursor-pointer">
+                <DropdownMenuItem 
+                  onClick={() => navigate("/events")} 
+                  className={`cursor-pointer ${isActivePath("/events") ? "bg-primary/10 text-primary" : ""}`}
+                >
                   <CalendarClock className="h-4 w-4 mr-2" />
                   Events
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/test-scores")} className="cursor-pointer">
+                <DropdownMenuItem 
+                  onClick={() => navigate("/test-scores")} 
+                  className={`cursor-pointer ${isActivePath("/test-scores") ? "bg-primary/10 text-primary" : ""}`}
+                >
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Test Scores
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/social")} className="cursor-pointer">
+                <DropdownMenuItem 
+                  onClick={() => navigate("/social")} 
+                  className={`cursor-pointer ${isActivePath("/social") ? "bg-primary/10 text-primary" : ""}`}
+                >
                   <Users className="h-4 w-4 mr-2" />
                   Social
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/ai-insights")} className="cursor-pointer">
+                <DropdownMenuItem 
+                  onClick={() => navigate("/ai-insights")} 
+                  className={`cursor-pointer ${isActivePath("/ai-insights") ? "bg-primary/10 text-primary" : ""}`}
+                >
                   <Brain className="h-4 w-4 mr-2" />
                   AI Insights
                 </DropdownMenuItem>
                 {isAdmin && (
-                  <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer">
+                  <DropdownMenuItem 
+                    onClick={() => navigate("/admin")} 
+                    className={`cursor-pointer ${isActivePath("/admin") ? "bg-primary/10 text-primary" : ""}`}
+                  >
                     <Crown className="h-4 w-4 mr-2 text-amber-500" />
                     Admin Panel
                   </DropdownMenuItem>
