@@ -240,7 +240,7 @@ serve(async (req) => {
               "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: "grok-3-vision-120b",
               messages: [
                 {
                   role: "user",
