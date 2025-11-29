@@ -14,39 +14,36 @@ serve(async (req) => {
   try {
     const { text, subjectName, images } = await req.json();
 
-    const systemPrompt = `You are an expert at extracting study topics from images and text.
+    const systemPrompt = `You are a precise OCR and text extraction assistant. Your job is to read text from images EXACTLY as written.
 
-CRITICAL RULES - READ CAREFULLY:
-1. Extract ONLY topics that are explicitly visible in the provided images/text
-2. DO NOT generate, infer, or add ANY topics that are not directly shown
-3. DO NOT expand topic names beyond what is written
-4. DO NOT add related topics, subtopics, or chapters that are not explicitly listed
-5. Copy the exact topic names as they appear in the images/text
-6. If a checklist, bullet list, or numbered list is shown, extract ONLY those items
+STRICT RULES:
+1. READ the actual text visible in the image - use OCR to extract what is written
+2. Copy text EXACTLY as it appears - same spelling, same punctuation, same capitalization
+3. DO NOT paraphrase, summarize, or modify the text in any way
+4. DO NOT infer or add topics that are not explicitly written in the image
+5. If you see numbered items (1, 2, 3...) or bullet points, extract each one exactly
+6. If you see checkboxes or tick marks, extract the text next to each one
+7. Ignore headers like "Topics to revise" or "Checklist" - only extract the actual topic items
 
-Your task:
-- Look at the images/text provided
-- Find topic names, chapter titles, checklist items, or bullet points
-- Extract them EXACTLY as written
-- Return ONLY what you can see - nothing more, nothing less
-
-Return ONLY valid JSON in this format:
+OUTPUT FORMAT - Return ONLY this JSON structure:
 {
   "topics": [
-    {"name": "Topic 1"},
-    {"name": "Topic 2"}
+    {"name": "exact text from image"},
+    {"name": "exact text from image"}
   ]
-}`;
+}
 
-    // Build multimodal message content for Gemini
+Do NOT include any explanation or commentary - ONLY the JSON.`;
+
+    // Build multimodal message content
     const messageContent: any[] = [];
     
-    // Add system prompt and subject context
+    // Add instruction and subject context
     let textContent = `${systemPrompt}\n\nSubject: ${subjectName}\n\n`;
     if (text) {
       textContent += `Extract topics from this text:\n${text}`;
     } else if (images && Array.isArray(images) && images.length > 0) {
-      textContent += `Extract topics from the image(s) below. Look for topic names, chapter titles, bullet points, or checklist items.`;
+      textContent += `IMPORTANT: Carefully read and extract ALL text items/topics visible in this image. Use OCR to read every single line of text that represents a topic or item to study.`;
     }
     
     messageContent.push({ type: "text", text: textContent });
@@ -98,7 +95,7 @@ Return ONLY valid JSON in this format:
           "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
         },
         body: JSON.stringify({
-          model: "x-ai/grok-4.1-fast:free",
+          model: "google/gemini-2.0-flash-exp:free",
           messages: [
             { role: "user", content: messageContent }
           ],
