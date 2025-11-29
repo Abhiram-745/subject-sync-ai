@@ -163,7 +163,7 @@ Format your response as JSON with this structure:
           "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
         },
         body: JSON.stringify({
-          model: "google/gemma-3n-e4b-it:free",
+          model: "x-ai/grok-4.1-fast:free",
           messages: [
             { role: "user", content: `You are an expert educational analyst who creates personalized learning insights.\n\n${prompt}` }
           ],
