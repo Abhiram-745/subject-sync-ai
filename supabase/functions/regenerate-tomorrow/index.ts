@@ -190,9 +190,29 @@ ${!preferences.study_before_school && !preferences.study_during_lunch && !prefer
       }
     }
     
-    // Use provided timing
-    const effectiveStartTime = startTime || '09:00';
-    const effectiveEndTime = endTime || '17:00';
+    // Look up the specific day's time slot from preferences if not provided
+    let effectiveStartTime = startTime;
+    let effectiveEndTime = endTime;
+
+    if (preferences && (!startTime || !endTime)) {
+      const dayTimeSlots = (preferences.day_time_slots as any[]) || [];
+      const targetSlot = dayTimeSlots.find((slot: any) => 
+        slot.day.toLowerCase() === tomorrowDayOfWeek && slot.enabled
+      );
+      
+      if (targetSlot) {
+        effectiveStartTime = effectiveStartTime || targetSlot.startTime;
+        effectiveEndTime = effectiveEndTime || targetSlot.endTime;
+        console.log(`Using ${tomorrowDayOfWeek}'s time slot from preferences: ${targetSlot.startTime}-${targetSlot.endTime}`);
+      }
+    }
+
+    // Fall back to defaults if still not set
+    effectiveStartTime = effectiveStartTime || '09:00';
+    effectiveEndTime = effectiveEndTime || '17:00';
+    
+    console.log(`Effective time window for ${tomorrowDayOfWeek}: ${effectiveStartTime}-${effectiveEndTime}`);
+    
     const sessionDuration = preferences?.session_duration || 45;
     const breakDuration = preferences?.break_duration || 15;
 
@@ -446,7 +466,15 @@ Return ONLY valid JSON:
     const aiResult = JSON.parse(responseText);
     console.log('AI generated schedule:', aiResult);
 
-    // Validate and clean the schedule
+    // Validate and clean the schedule with TIME WINDOW ENFORCEMENT
+    const [windowStartHour, windowStartMin] = effectiveStartTime.split(':').map(Number);
+    const [windowEndHour, windowEndMin] = effectiveEndTime.split(':').map(Number);
+    const windowStartMins = windowStartHour * 60 + windowStartMin;
+    const windowEndMins = windowEndHour * 60 + windowEndMin;
+    
+    console.log(`Time window validation: ${effectiveStartTime} (${windowStartMins} mins) to ${effectiveEndTime} (${windowEndMins} mins)`);
+    
+    let removedCount = 0;
     const validatedSchedule = (aiResult.schedule || []).map((session: any) => {
       const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
       let sessionTime = session.time || '09:00';
@@ -462,6 +490,23 @@ Return ONLY valid JSON:
         return null;
       }
       
+      // POST-PROCESSING: Validate session is within user's time window
+      const sessionStartMins = hours * 60 + minutes;
+      const sessionDurationMins = session.duration || 45;
+      const sessionEndMins = sessionStartMins + sessionDurationMins;
+      
+      if (sessionStartMins < windowStartMins) {
+        console.warn(`🚫 REMOVED: Session at ${sessionTime} starts before window (${effectiveStartTime})`);
+        removedCount++;
+        return null;
+      }
+      
+      if (sessionEndMins > windowEndMins) {
+        console.warn(`🚫 REMOVED: Session at ${sessionTime} (${sessionDurationMins} mins) ends at ${Math.floor(sessionEndMins/60)}:${String(sessionEndMins%60).padStart(2,'0')} - after window end (${effectiveEndTime})`);
+        removedCount++;
+        return null;
+      }
+      
       return {
         time: sessionTime,
         subject: session.subject,
@@ -472,6 +517,8 @@ Return ONLY valid JSON:
         completed: false
       };
     }).filter(Boolean);
+    
+    console.log(`Time window validation complete: ${removedCount} sessions removed, ${validatedSchedule.length} sessions kept`);
 
     // Update timetable with new schedule for tomorrow
     const currentSchedule = timetable.schedule as Record<string, any[]>;
