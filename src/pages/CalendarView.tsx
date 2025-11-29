@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, BookOpen, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, BookOpen, CheckCircle2, Calendar, Coffee, FileText, Target, AlertCircle } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, parseISO, addMinutes } from "date-fns";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -13,13 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/Header";
 import GuidedOnboarding from "@/components/tours/GuidedOnboarding";
 import { useSectionTour } from "@/hooks/useSectionTour";
-import SectionSpotlight from "@/components/tours/SectionSpotlight";
-import { calendarSectionSteps } from "@/components/tours/calendarSectionSteps";
 import PageTransition from "@/components/PageTransition";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CalendarItem {
   id: string;
-  type: "session" | "event";
+  type: "session" | "event" | "homework";
   title: string;
   date: string;
   startTime: string;
@@ -50,6 +50,27 @@ const getSessionHeight = (startTime: string, endTime: string) => {
   return Math.max((durationMinutes / 60) * HOUR_HEIGHT, 30);
 };
 
+// Get styles for different item types
+const getItemStyles = (item: CalendarItem) => {
+  if (item.type === "event") {
+    return { bg: "bg-red-500", text: "text-white", icon: <AlertCircle className="h-3 w-3" /> };
+  }
+  if (item.type === "homework") {
+    return { bg: "bg-purple-500", text: "text-white", icon: <FileText className="h-3 w-3" /> };
+  }
+  const sessionType = item.data?.type;
+  if (sessionType === "homework") {
+    return { bg: "bg-purple-500", text: "text-white", icon: <FileText className="h-3 w-3" /> };
+  } else if (sessionType === "revision") {
+    return { bg: "bg-blue-500", text: "text-white", icon: <BookOpen className="h-3 w-3" /> };
+  } else if (sessionType === "break") {
+    return { bg: "bg-slate-400", text: "text-white", icon: <Coffee className="h-3 w-3" /> };
+  } else if (item.data?.testDate) {
+    return { bg: "bg-orange-500", text: "text-white", icon: <Target className="h-3 w-3" /> };
+  }
+  return { bg: "bg-blue-500", text: "text-white", icon: <BookOpen className="h-3 w-3" /> };
+};
+
 // Draggable session item for time-based grid
 const DraggableSession = ({ item }: { item: CalendarItem }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -64,24 +85,7 @@ const DraggableSession = ({ item }: { item: CalendarItem }) => {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const getItemStyles = () => {
-    if (item.type === "event") {
-      return { bg: "bg-red-500/90", text: "text-white", icon: "⛔" };
-    }
-    const sessionType = item.data?.type;
-    if (sessionType === "homework") {
-      return { bg: "bg-purple-500/90", text: "text-white", icon: "📝" };
-    } else if (sessionType === "revision") {
-      return { bg: "bg-blue-500/90", text: "text-white", icon: "📚" };
-    } else if (sessionType === "break") {
-      return { bg: "bg-muted/70", text: "text-muted-foreground", icon: "☕" };
-    } else if (item.data?.testDate) {
-      return { bg: "bg-orange-500/90", text: "text-white", icon: "🎯" };
-    }
-    return { bg: "bg-primary/80", text: "text-primary-foreground", icon: "📖" };
-  };
-
-  const styles = getItemStyles();
+  const styles = getItemStyles(item);
   const height = getSessionHeight(item.startTime, item.endTime);
   const isCompact = height < 50;
 
@@ -93,20 +97,23 @@ const DraggableSession = ({ item }: { item: CalendarItem }) => {
           style={style}
           {...listeners}
           {...attributes}
-          className={`absolute left-1 right-1 rounded-lg cursor-grab active:cursor-grabbing transition-all hover:shadow-lg hover:z-20 ${styles.bg} ${styles.text} px-2 py-1 overflow-hidden border border-white/20`}
+          className={`absolute left-1 right-1 rounded-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg hover:z-20 ${styles.bg} ${styles.text} px-2 py-1 overflow-hidden shadow-sm`}
         >
           {isCompact ? (
             <div className="flex items-center gap-1 h-full">
-              <span className="text-xs">{styles.icon}</span>
-              <p className="text-xs font-medium truncate flex-1">{item.title}</p>
+              {styles.icon}
+              <p className="text-[10px] font-medium truncate flex-1">{item.title}</p>
             </div>
           ) : (
             <div className="flex flex-col h-full">
               <div className="flex items-center gap-1">
-                <span className="text-sm">{styles.icon}</span>
+                {styles.icon}
                 <p className="text-xs font-semibold truncate">{item.title}</p>
               </div>
               <p className="text-[10px] opacity-80 mt-0.5">{item.startTime} - {item.endTime}</p>
+              {item.data?.subject && (
+                <p className="text-[10px] opacity-70 truncate">{item.data.subject}</p>
+              )}
             </div>
           )}
         </div>
@@ -114,7 +121,9 @@ const DraggableSession = ({ item }: { item: CalendarItem }) => {
       <HoverCardContent className="w-72 p-4 bg-card/95 backdrop-blur-sm z-50" side="right" align="start">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{styles.icon}</span>
+            <div className={`p-2 rounded-lg ${styles.bg}`}>
+              {styles.icon}
+            </div>
             <div>
               <p className="text-sm font-bold text-foreground">{item.title}</p>
               <p className="text-xs text-muted-foreground capitalize">{item.data?.type || item.type}</p>
@@ -157,8 +166,8 @@ const DroppableDay = ({ date, items }: { date: Date; items: CalendarItem[] }) =>
   return (
     <div
       ref={setNodeRef}
-      className={`relative flex-1 min-w-[120px] border-r border-border/30 transition-colors ${
-        isOver ? "bg-primary/10" : isToday ? "bg-primary/5" : ""
+      className={`relative flex-1 min-w-[100px] border-r border-border/30 last:border-r-0 transition-colors ${
+        isOver ? "bg-primary/10" : ""
       }`}
       style={{ height: `${TIME_SLOTS.length * HOUR_HEIGHT}px` }}
     >
@@ -179,10 +188,10 @@ const DroppableDay = ({ date, items }: { date: Date; items: CalendarItem[] }) =>
       {/* Current time indicator */}
       {isToday && (
         <div
-          className="absolute left-0 right-0 h-0.5 bg-red-500 z-30"
+          className="absolute left-0 right-0 h-0.5 bg-red-500 z-30 pointer-events-none"
           style={{ top: `${getTimePosition(format(new Date(), 'HH:mm'))}px` }}
         >
-          <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full bg-red-500" />
+          <div className="absolute -left-1 -top-1 w-2.5 h-2.5 rounded-full bg-red-500" />
         </div>
       )}
     </div>
@@ -197,7 +206,7 @@ const CalendarView = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [timetables, setTimetables] = useState<any[]>([]);
   const [selectedTimetableId, setSelectedTimetableId] = useState<string>("");
-  const { activeTourSection, markSectionViewed, viewedSections, handleSectionClick } = useSectionTour("calendar");
+  const { viewedSections, handleSectionClick } = useSectionTour("calendar");
 
   useEffect(() => {
     fetchTimetables();
@@ -236,7 +245,6 @@ const CalendarView = () => {
       if (data && data.length > 0) {
         setSelectedTimetableId(data[0].id);
       } else {
-        // No timetables found, stop loading
         setLoading(false);
       }
     } catch (error) {
@@ -276,6 +284,33 @@ const CalendarView = () => {
         data: event,
       }));
 
+      // Fetch homework items
+      const { data: homeworkData, error: homeworkError } = await supabase
+        .from("homeworks")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("due_date", weekStart)
+        .lte("due_date", weekEnd);
+
+      if (homeworkError) throw homeworkError;
+
+      const homeworkItems: CalendarItem[] = (homeworkData || []).map((hw: any) => {
+        const duration = hw.duration || 30;
+        return {
+          id: `homework-${hw.id}`,
+          type: "homework" as const,
+          title: hw.title,
+          date: hw.due_date,
+          startTime: "09:00",
+          endTime: format(addMinutes(parseISO(`${hw.due_date}T09:00`), duration), "HH:mm"),
+          color: "purple",
+          data: {
+            ...hw,
+            type: "homework",
+          },
+        };
+      });
+
       // Fetch timetable sessions
       const { data: timetableData, error: timetableError } = await supabase
         .from("timetables")
@@ -301,11 +336,11 @@ const CalendarView = () => {
               sessionItems.push({
                 id: `session-${date}-${index}`,
                 type: "session" as const,
-                title: session.topic,
+                title: session.topic || session.subject,
                 date: format(sessionDate, "yyyy-MM-dd"),
                 startTime: format(startTime, "HH:mm"),
                 endTime: format(endTime, "HH:mm"),
-                color: session.type === "homework" ? "purple" : "blue",
+                color: session.type === "homework" ? "purple" : session.type === "break" ? "gray" : "blue",
                 data: {
                   ...session,
                   sessionIndex: index,
@@ -317,7 +352,7 @@ const CalendarView = () => {
         });
       }
 
-      setCalendarItems([...eventItems, ...sessionItems]);
+      setCalendarItems([...eventItems, ...homeworkItems, ...sessionItems]);
     } catch (error) {
       console.error("Error fetching calendar data:", error);
       toast.error("Failed to load calendar data");
@@ -408,6 +443,15 @@ const CalendarView = () => {
 
         toast.success("Event rescheduled successfully");
         fetchCalendarData();
+      } else if (draggedItem.type === "homework") {
+        // Update homework due date
+        await supabase
+          .from("homeworks")
+          .update({ due_date: newDate })
+          .eq("id", draggedItem.data.id);
+
+        toast.success("Homework rescheduled successfully");
+        fetchCalendarData();
       }
     } catch (error) {
       console.error("Error rescheduling:", error);
@@ -424,7 +468,10 @@ const CalendarView = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="p-8 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-muted-foreground">Loading calendar...</p>
+          </div>
         </div>
       </div>
     );
@@ -435,7 +482,8 @@ const CalendarView = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="p-8 flex flex-col items-center justify-center gap-4">
-          <p className="text-muted-foreground">No timetables found. Create a timetable first to view your calendar.</p>
+          <Calendar className="h-16 w-16 text-muted-foreground/50" />
+          <p className="text-muted-foreground text-center">No timetables found. Create a timetable first to view your calendar.</p>
           <Button onClick={() => navigate("/timetables")}>
             Create Timetable
           </Button>
@@ -446,108 +494,184 @@ const CalendarView = () => {
 
   return (
     <PageTransition>
-    <div className="min-h-screen bg-background">
-      {/* Guided Onboarding Tour */}
-      <GuidedOnboarding />
-      
-      <Header />
-      
-      <div className="p-4 md:p-6 space-y-4">
-        {/* Header with navigation */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/timetables")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">Calendar View</h1>
-              <p className="text-sm text-muted-foreground">Week of {format(currentWeek, "MMM d")}</p>
+      <div className="min-h-screen bg-background">
+        <GuidedOnboarding />
+        <Header />
+        
+        <div className="p-4 md:p-6 space-y-4">
+          {/* Header with navigation */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/timetables")}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold">Calendar View</h1>
+                <p className="text-sm text-muted-foreground">
+                  {format(currentWeek, "MMMM d")} - {format(addDays(currentWeek, 6), "MMMM d, yyyy")}
+                </p>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {timetables.length > 0 && (
-              <Select value={selectedTimetableId} onValueChange={setSelectedTimetableId}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select timetable" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timetables.map((tt) => (
-                    <SelectItem key={tt.id} value={tt.id}>
-                      {tt.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
             
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            >
-              Today
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap" data-tour="week-navigation">
+              {timetables.length > 0 && (
+                <Select value={selectedTimetableId} onValueChange={setSelectedTimetableId}>
+                  <SelectTrigger className="w-[180px]" data-tour="timetable-select">
+                    <SelectValue placeholder="Select timetable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timetables.map((tt) => (
+                      <SelectItem key={tt.id} value={tt.id}>
+                        {tt.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {/* Legend at the top */}
+          <Card data-tour="calendar-legend">
+            <CardContent className="py-3 px-4">
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <span className="font-medium text-muted-foreground">Legend:</span>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-blue-500 hover:bg-blue-500 gap-1">
+                    <BookOpen className="h-3 w-3" />
+                    Revision
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-purple-500 hover:bg-purple-500 gap-1">
+                    <FileText className="h-3 w-3" />
+                    Homework
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-red-500 hover:bg-red-500 gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Events
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-orange-500 hover:bg-orange-500 gap-1">
+                    <Target className="h-3 w-3" />
+                    Test Prep
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-slate-400 hover:bg-slate-400 gap-1">
+                    <Coffee className="h-3 w-3" />
+                    Break
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Calendar Grid */}
+          <Card className="overflow-hidden" data-tour="time-grid">
+            {/* Day Headers */}
+            <div className="flex border-b bg-muted/30 sticky top-0 z-20">
+              {/* Time column header */}
+              <div className="w-16 flex-shrink-0 border-r border-border/30 p-2 text-center">
+                <Clock className="h-4 w-4 mx-auto text-muted-foreground" />
+              </div>
+              {/* Day columns headers */}
+              {weekDays.map((day) => {
+                const isToday = isSameDay(day, new Date());
+                return (
+                  <div
+                    key={format(day, "yyyy-MM-dd")}
+                    className={`flex-1 min-w-[100px] text-center py-2 px-1 border-r border-border/30 last:border-r-0 ${
+                      isToday ? "bg-primary/10" : ""
+                    }`}
+                  >
+                    <p className={`text-xs font-medium uppercase tracking-wide ${
+                      isToday ? "text-primary" : "text-muted-foreground"
+                    }`}>
+                      {format(day, "EEE")}
+                    </p>
+                    <p className={`text-lg font-bold mt-0.5 ${
+                      isToday 
+                        ? "bg-primary text-primary-foreground rounded-full w-8 h-8 mx-auto flex items-center justify-center" 
+                        : ""
+                    }`}>
+                      {format(day, "d")}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Time Grid */}
+            <ScrollArea className="h-[calc(100vh-320px)]">
+              <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="flex">
+                  {/* Time axis */}
+                  <div className="w-16 flex-shrink-0 border-r border-border/30 bg-muted/10">
+                    {TIME_SLOTS.map((time) => (
+                      <div
+                        key={time}
+                        className="text-[11px] text-muted-foreground text-right pr-2 relative"
+                        style={{ height: `${HOUR_HEIGHT}px` }}
+                      >
+                        <span className="absolute -top-2 right-2">
+                          {format(parseISO(`2024-01-01T${time}`), "h a")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Day columns */}
+                  <div className="flex flex-1">
+                    {weekDays.map((day) => (
+                      <DroppableDay
+                        key={format(day, "yyyy-MM-dd")}
+                        date={day}
+                        items={calendarItems}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                <DragOverlay>
+                  {activeItem ? <DraggableSession item={activeItem} /> : null}
+                </DragOverlay>
+              </DndContext>
+            </ScrollArea>
+          </Card>
         </div>
-
-        {/* Week grid */}
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-7 gap-2">
-            {weekDays.map((day) => (
-              <DroppableDay key={format(day, "yyyy-MM-dd")} date={day} items={calendarItems} />
-            ))}
-          </div>
-          
-          <DragOverlay>
-            {activeItem ? <DraggableSession item={activeItem} /> : null}
-          </DragOverlay>
-        </DndContext>
-
-        {/* Compact legend */}
-        <Card className="p-3">
-          <div className="flex flex-wrap items-center gap-3 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-blue-500" />
-              <span>Revision</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-purple-500" />
-              <span>Homework</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-red-500" />
-              <span>Events</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-orange-500" />
-              <span>Test Prep</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-muted" />
-              <span>Break</span>
-            </div>
-          </div>
-        </Card>
       </div>
-    </div>
     </PageTransition>
   );
 };
