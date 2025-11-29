@@ -202,36 +202,53 @@ const GenerateStep = ({
 
       if (subjectsError) throw subjectsError;
 
-      // Map old subject indices to new IDs
+      // Map both client-side UUIDs and indices to new database IDs
       const subjectIdMap: { [key: string]: string } = {};
       savedSubjects.forEach((saved, index) => {
+        // Map by index (backward compatibility)
         subjectIdMap[index.toString()] = saved.id;
+        // Map by client-side UUID if the original subject had one
+        if (subjects[index]?.id) {
+          subjectIdMap[subjects[index].id] = saved.id;
+        }
       });
 
-      // Save topics with correct subject IDs
-      const { error: topicsError } = await supabase
-        .from("topics")
-        .insert(
-          topics.map((t) => ({
-            subject_id: subjectIdMap[t.subject_id],
-            name: t.name,
-          }))
-        );
+      // Save topics with correct subject IDs - filter out any with invalid subject_id
+      const topicsToInsert = topics.map((t) => ({
+        subject_id: subjectIdMap[t.subject_id],
+        name: t.name,
+      })).filter(t => t.subject_id);
 
-      if (topicsError) throw topicsError;
+      if (topicsToInsert.length !== topics.length) {
+        console.warn(`Some topics had invalid subject_ids. Expected ${topics.length}, got ${topicsToInsert.length}`);
+      }
 
-      // Save test dates with correct subject IDs
-      const { error: datesError } = await supabase
-        .from("test_dates")
-        .insert(
-          testDates.map((td) => ({
-            subject_id: subjectIdMap[td.subject_id],
-            test_date: td.test_date,
-            test_type: td.test_type,
-          }))
-        );
+      if (topicsToInsert.length > 0) {
+        const { error: topicsError } = await supabase
+          .from("topics")
+          .insert(topicsToInsert);
 
-      if (datesError) throw datesError;
+        if (topicsError) throw topicsError;
+      }
+
+      // Save test dates with correct subject IDs - filter out any with invalid subject_id
+      const testDatesToInsert = testDates.map((td) => ({
+        subject_id: subjectIdMap[td.subject_id],
+        test_date: td.test_date,
+        test_type: td.test_type,
+      })).filter(td => td.subject_id);
+
+      if (testDatesToInsert.length !== testDates.length) {
+        console.warn(`Some test dates had invalid subject_ids. Expected ${testDates.length}, got ${testDatesToInsert.length}`);
+      }
+
+      if (testDatesToInsert.length > 0) {
+        const { error: datesError } = await supabase
+          .from("test_dates")
+          .insert(testDatesToInsert);
+
+        if (datesError) throw datesError;
+      }
 
       // Save preferences
       const { error: prefsError } = await supabase
