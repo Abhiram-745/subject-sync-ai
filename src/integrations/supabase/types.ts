@@ -83,6 +83,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_verifications: {
+        Row: {
+          attempts: number | null
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          verified: boolean | null
+        }
+        Insert: {
+          attempts?: number | null
+          code: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          verified?: boolean | null
+        }
+        Update: {
+          attempts?: number | null
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -1495,6 +1525,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      cleanup_expired_verifications: { Args: never; Returns: undefined }
       generate_referral_code: { Args: never; Returns: string }
       get_referral_rewards_count: {
         Args: { _user_id: string }

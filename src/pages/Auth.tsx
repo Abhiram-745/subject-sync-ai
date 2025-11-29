@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, RefreshCw } from "lucide-react";
 import vistariLogo from "@/assets/vistari-logo.png";
 import PageTransition from "@/components/PageTransition";
 
+type AuthStep = "form" | "verification";
+
 const Auth = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +24,12 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  
+  // Verification state
+  const [authStep, setAuthStep] = useState<AuthStep>("form");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [verifyLoading, setVerifyLoading] = useState(false);
 
   const checkBannedEmail = async (emailToCheck: string): Promise<{ isBanned: boolean; reason: string }> => {
     try {
@@ -49,7 +57,6 @@ const Auth = () => {
 
       if (error) {
         console.error("Email validation error:", error);
-        // Allow signup if validation fails (don't block user)
         return { isValid: true, reason: "" };
       }
 
@@ -59,9 +66,50 @@ const Auth = () => {
       };
     } catch (error) {
       console.error("Email validation error:", error);
-      // Allow signup if validation fails (don't block user)
       return { isValid: true, reason: "" };
     }
+  };
+
+  const sendVerificationCode = async (targetEmail: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-verification-code', {
+        body: { email: targetEmail }
+      });
+
+      if (error) {
+        console.error("Send verification code error:", error);
+        toast.error("Failed to send verification code", {
+          description: "Please try again."
+        });
+        return false;
+      }
+
+      if (data?.error) {
+        toast.error("Failed to send verification code", {
+          description: data.error
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Send verification code error:", error);
+      toast.error("Failed to send verification code");
+      return false;
+    }
+  };
+
+  const startResendCooldown = () => {
+    setResendCooldown(60);
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -78,7 +126,7 @@ const Auth = () => {
       return;
     }
 
-    // Validate email using AbstractAPI
+    // Validate email using API
     const validationResult = await validateEmail(email);
     if (!validationResult.isValid) {
       setLoading(false);
@@ -88,29 +136,104 @@ const Auth = () => {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
-
-    if (error) {
+    // Send verification code
+    const codeSent = await sendVerificationCode(email);
+    if (!codeSent) {
       setLoading(false);
-      toast.error(error.message);
       return;
     }
 
     setLoading(false);
-    toast.success("Account created!", {
-      description: "You can now log in.",
+    setAuthStep("verification");
+    startResendCooldown();
+    toast.success("Verification code sent!", {
+      description: "Check your email for the 6-digit code."
     });
+  };
+
+  const handleVerifyAndCreateAccount = async () => {
+    if (verificationCode.length !== 6) {
+      toast.error("Please enter the complete 6-digit code");
+      return;
+    }
+
+    setVerifyLoading(true);
+
+    try {
+      // Verify the code
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-code', {
+        body: { email, code: verificationCode }
+      });
+
+      if (verifyError) {
+        setVerifyLoading(false);
+        toast.error("Verification failed", {
+          description: "Please try again."
+        });
+        return;
+      }
+
+      if (!verifyData?.valid) {
+        setVerifyLoading(false);
+        toast.error("Verification failed", {
+          description: verifyData?.error || "Invalid code"
+        });
+        return;
+      }
+
+      // Code is valid - create the account
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (signUpError) {
+        setVerifyLoading(false);
+        toast.error(signUpError.message);
+        return;
+      }
+
+      setVerifyLoading(false);
+      toast.success("Account created successfully!", {
+        description: "You can now sign in."
+      });
+      
+      // Reset form
+      setEmail("");
+      setPassword("");
+      setFullName("");
+      setVerificationCode("");
+      setAuthStep("form");
+    } catch (error) {
+      setVerifyLoading(false);
+      console.error("Account creation error:", error);
+      toast.error("Failed to create account");
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
     
-    setEmail("");
-    setPassword("");
-    setFullName("");
+    setLoading(true);
+    const codeSent = await sendVerificationCode(email);
+    setLoading(false);
+    
+    if (codeSent) {
+      startResendCooldown();
+      setVerificationCode("");
+      toast.success("New code sent!", {
+        description: "Check your email for the new 6-digit code."
+      });
+    }
+  };
+
+  const handleBackToForm = () => {
+    setAuthStep("form");
+    setVerificationCode("");
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -198,138 +321,212 @@ const Auth = () => {
             </div>
             <CardTitle className="text-3xl font-bold gradient-text">Vistari</CardTitle>
             <CardDescription>
-              AI-powered revision timetables for GCSE students
+              {authStep === "verification" 
+                ? "Enter the verification code sent to your email"
+                : "AI-powered revision timetables for GCSE students"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
+            {authStep === "verification" ? (
+              <div className="space-y-6">
+                <div className="text-center space-y-2">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Mail className="h-8 w-8 text-primary" />
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    We've sent a 6-digit code to
+                  </p>
+                  <p className="font-medium">{email}</p>
+                </div>
 
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-primary hover:opacity-90"
-                    disabled={loading}
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={setVerificationCode}
                   >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign In
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <Button
+                  onClick={handleVerifyAndCreateAccount}
+                  className="w-full bg-gradient-primary hover:opacity-90"
+                  disabled={verifyLoading || verificationCode.length !== 6}
+                >
+                  {verifyLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Verify & Create Account
+                </Button>
+
+                <div className="flex flex-col items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleResendCode}
+                    disabled={resendCooldown > 0 || loading}
+                    className="text-sm"
+                  >
+                    {loading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    {resendCooldown > 0 
+                      ? `Resend code in ${resendCooldown}s` 
+                      : "Resend code"
+                    }
                   </Button>
                   
-                  <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="w-full text-sm text-muted-foreground hover:text-foreground"
-                      >
-                        Forgot your password?
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Reset Password</DialogTitle>
-                        <DialogDescription>
-                          Enter your email address and we'll send you a link to reset your password.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handlePasswordReset} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="reset-email">Email</Label>
-                          <Input
-                            id="reset-email"
-                            type="email"
-                            placeholder="your@email.com"
-                            value={resetEmail}
-                            onChange={(e) => setResetEmail(e.target.value)}
-                            required
-                          />
-                        </div>
-                        <Button
-                          type="submit"
-                          className="w-full bg-gradient-primary hover:opacity-90"
-                          disabled={resetLoading}
-                        >
-                          {resetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Send Reset Link
-                        </Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
                   <Button
-                    type="submit"
-                    className="w-full bg-gradient-primary hover:opacity-90"
-                    disabled={loading}
+                    type="button"
+                    variant="link"
+                    onClick={handleBackToForm}
+                    className="text-sm text-muted-foreground"
                   >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Account
+                    Use a different email
                   </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                </div>
+              </div>
+            ) : (
+              <Tabs defaultValue="signin" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="signin">Sign In</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="signin">
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email">Email</Label>
+                      <Input
+                        id="signin-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <Input
+                        id="signin-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-primary hover:opacity-90"
+                      disabled={loading}
+                    >
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Sign In
+                    </Button>
+                    
+                    <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="w-full text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          Forgot your password?
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Reset Password</DialogTitle>
+                          <DialogDescription>
+                            Enter your email address and we'll send you a link to reset your password.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handlePasswordReset} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="reset-email">Email</Label>
+                            <Input
+                              id="reset-email"
+                              type="email"
+                              placeholder="your@email.com"
+                              value={resetEmail}
+                              onChange={(e) => setResetEmail(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <Button
+                            type="submit"
+                            className="w-full bg-gradient-primary hover:opacity-90"
+                            disabled={resetLoading}
+                          >
+                            {resetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Send Reset Link
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-name">Full Name</Label>
+                      <Input
+                        id="signup-name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-primary hover:opacity-90"
+                      disabled={loading}
+                    >
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Continue
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
