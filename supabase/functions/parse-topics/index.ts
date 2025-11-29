@@ -73,7 +73,7 @@ Return ONLY valid JSON in this format:
           "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
         },
         body: JSON.stringify({
-          model: "x-ai/grok-4.1-fast:free",
+          model: "google/gemini-2.0-flash-exp:free",
           messages: [
             { role: "user", content: `${systemPrompt}\n\n${contentParts}` }
           ],
