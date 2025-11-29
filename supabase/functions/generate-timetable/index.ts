@@ -9,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Input validation schema
+// Input validation schema - accept both UUID and string subject_ids for backward compatibility
 const inputSchema = z.object({
   subjects: z.array(z.object({
     id: z.string().uuid(),
@@ -19,10 +19,10 @@ const inputSchema = z.object({
   })).max(20),
   topics: z.array(z.object({
     name: z.string().max(200),
-    subject_id: z.string().uuid()
+    subject_id: z.string().max(100) // Accept any string, not just UUID for backward compatibility
   })).max(500),
   testDates: z.array(z.object({
-    subject_id: z.string().uuid(),
+    subject_id: z.string().max(100), // Accept any string for backward compatibility
     test_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     test_type: z.string().max(50)
   })).max(50),

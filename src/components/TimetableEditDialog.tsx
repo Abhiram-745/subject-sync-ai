@@ -85,7 +85,24 @@ export const TimetableEditDialog = ({
   const [subjects, setSubjects] = useState<Subject[]>(
     currentSubjects.map(s => ({ ...s, mode: s.mode || "no-exam" }))
   );
-  const [topics, setTopics] = useState<Topic[]>(currentTopics);
+  
+  // Normalize topics to use proper subject IDs (handle old data with index-based subject_ids)
+  const normalizeTopics = (topics: Topic[], subs: Subject[]): Topic[] => {
+    return topics.map(topic => {
+      // If subject_id is already a valid UUID (36 chars with dashes), keep it
+      if (topic.subject_id && topic.subject_id.length === 36 && topic.subject_id.includes('-')) {
+        return topic;
+      }
+      // If it's an index-based subject_id (like "0", "1", etc.), map to actual subject ID
+      const subjectIndex = parseInt(topic.subject_id, 10);
+      if (!isNaN(subjectIndex) && subs[subjectIndex]?.id) {
+        return { ...topic, subject_id: subs[subjectIndex].id };
+      }
+      return topic;
+    });
+  };
+  
+  const [topics, setTopics] = useState<Topic[]>(normalizeTopics(currentTopics, currentSubjects));
   const [testDates, setTestDates] = useState<TestDate[]>(currentTestDates);
   const [preferences, setPreferences] = useState<StudyPreferences>(migratePreferences(currentPreferences));
   const [isRegenerating, setIsRegenerating] = useState(false);

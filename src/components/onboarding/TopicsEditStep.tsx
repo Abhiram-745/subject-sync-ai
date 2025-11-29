@@ -27,7 +27,8 @@ const TopicsEditStep = ({ subjects, topics, setTopics }: TopicsEditStepProps) =>
   const [editingName, setEditingName] = useState("");
 
   const currentSubject = subjects[currentSubjectIndex];
-  const currentSubjectId = currentSubjectIndex.toString();
+  // Use actual subject ID if available, fall back to index for new subjects without IDs
+  const currentSubjectId = currentSubject?.id || currentSubjectIndex.toString();
 
   const addTopic = () => {
     if (topicName.trim()) {
