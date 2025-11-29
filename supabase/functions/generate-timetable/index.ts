@@ -828,14 +828,31 @@ For ALL subjects (except the very first topic of each subject):
 **MATHEMATICS FIRST TOPIC:**
 - First maths topic follows the standard 2-session structure (Practice + Exam Questions)
 
-**FLEXIBLE SESSION ALLOCATION:**
-- NOT all topics need exactly 2 sessions
-- HIGH PRIORITY/DIFFICULT topics may need 3-4+ sessions (mix of practice and exam questions)
-- EASIER/LOWER PRIORITY topics might only need 1 session (combined practice + questions)
+**🚨 FLEXIBLE SESSION ALLOCATION BASED ON PRIORITY - YOU MUST FOLLOW THIS 🚨:**
+
+DO NOT make all topics the same. YOU MUST LOOK AT THE PRIORITY CONTEXT ABOVE and apply it here:
+
+- **HIGH PRIORITY/DIFFICULT TOPICS** (priority 7-10, or in FOCUS TOPICS list): 
+  * Need 3-4+ sessions (mix of practice and exam questions)
+  * Each session duration: 60-75 MINUTES (longer sessions for complex topics)
+  * Get scheduled MORE FREQUENTLY throughout the timetable
+  * Receive MORE study time overall
+
+- **MEDIUM PRIORITY TOPICS** (priority 4-6):
+  * Need 2 sessions (practice + exam questions)
+  * Each session duration: 45-60 MINUTES (standard session length)
+  * Regular frequency throughout timetable
+
+- **LOWER PRIORITY/EASIER TOPICS** (priority 1-3):
+  * Might only need 1 session (combined approach)
+  * Each session duration: 20-40 MINUTES (shorter sessions for simpler topics)
+  * Less frequent scheduling
+
 - AI should intelligently allocate sessions based on:
+  * PRIORITY LEVEL from the priority context (HIGH/MEDIUM/LOW - see above)
   * Time available in the schedule
   * Total number of topics to cover
-  * Topic difficulty/priority level
+  * Topic difficulty (harder = longer sessions, UP TO 75 minutes)
   * Proximity to test dates
 
 **SESSION NOTES FIELD:**
@@ -856,6 +873,17 @@ ${testDates.map((td: any) => {
 Students cannot study on test days. Schedule all revision BEFORE the test date, never on the test date itself.` : ''}
 
 **🔴 CRITICAL REQUIREMENTS - MUST FOLLOW 🔴:**
+0. **📋 PRIORITY-BASED DURATION ALLOCATION - CRITICAL 📋**
+   - YOU MUST READ AND APPLY THE PRIORITY CONTEXT provided earlier in this prompt
+   - Different topics get DIFFERENT duration times based on their priority level
+   - **HIGH PRIORITY topics (priority 7-10, FOCUS TOPICS)**: Use 60-75 minute sessions (longer for mastery)
+   - **MEDIUM PRIORITY topics (priority 4-6)**: Use 45-60 minute sessions (standard time)
+   - **LOWER PRIORITY topics (priority 1-3)**: Use 20-40 minute sessions (shorter for review)
+   - Sessions are NOT all the same length - they scale with priority and difficulty
+   - UP TO 75 MINUTES means: vary sessions based on topic priority (lower priority = shorter sessions)
+   - If a topic isn't marked as high priority/focus topic, DO NOT give it a 75-minute session
+   - Match session duration to topic priority level - this is critical for effective studying
+   - VERIFICATION: Your final schedule should show different session durations (not all 75 mins)
 ${aiNotes ? "0. **FOLLOW USER'S CUSTOM INSTRUCTIONS**: The user has provided specific instructions above. These MUST be followed precisely - they take priority over general guidelines below." : ""}
 ${peakHoursContext ? `
 0. **🧠 PEAK HOURS OPTIMIZATION - CRITICAL 🧠**
