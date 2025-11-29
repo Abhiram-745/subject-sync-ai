@@ -81,23 +81,24 @@ Return ONLY valid JSON in this format:
       }
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
+    if (!OPEN_ROUTER_API_KEY) {
+      throw new Error("OPEN_ROUTER_API_KEY not configured");
     }
 
-    console.log(`Calling Lovable AI with ${messageContent.length} content parts (${images?.length || 0} images)`);
+    console.log(`Calling OpenRouter with ${messageContent.length} content parts (${images?.length || 0} images)`);
 
     const response = await fetch(
-      'https://ai.gateway.lovable.dev/v1/chat/completions',
+      'https://openrouter.ai/api/v1/chat/completions',
       {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`
+          "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
+          "HTTP-Referer": Deno.env.get('SUPABASE_URL') || "https://vistari.app"
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "openai/gpt-oss-20b:free",
           messages: [
             { role: "user", content: messageContent }
           ],
