@@ -330,22 +330,26 @@ ${!schoolPrefs.study_before_school && !schoolPrefs.study_during_lunch && !school
       .join(", ");
 
     // Add priority analysis context if available - FOCUS topics get SIGNIFICANTLY MORE study time with MULTIPLE sessions
+    // RESPECT the user's duration mode when calculating focus topic durations
+    const focusSessionDuration = preferences.duration_mode === "fixed" 
+      ? preferences.session_duration 
+      : (timetableMode === "short-term-exam" ? 75 : timetableMode === "long-term-exam" ? 55 : 45);
+    
     const priorityContext = topicAnalysis?.priorities 
-      ? "\n\n**FOCUS TOPICS** (these topics need SIGNIFICANTLY MORE study time - allocate 60-90 minute sessions and schedule MULTIPLE sessions):\n" + 
+      ? "\n\n**FOCUS TOPICS** (these topics need SIGNIFICANTLY MORE study time - schedule MULTIPLE sessions):\n" + 
         topicAnalysis.priorities
           .sort((a: any, b: any) => b.priority_score - a.priority_score)
           .map((p: any) => {
             const sessions = Math.max(4, Math.ceil(p.priority_score / 1.5));
-            const duration = Math.min(90, 45 + (p.priority_score * 5));
-            return `${p.topic_name}: Priority ${p.priority_score}/10 - ${p.reasoning}\n  → MUST schedule ${sessions} sessions of ${duration} minutes EACH for this topic throughout the timetable`;
+            return `${p.topic_name}: Priority ${p.priority_score}/10 - ${p.reasoning}\n  → MUST schedule ${sessions} sessions of ${focusSessionDuration} minutes EACH for this topic throughout the timetable`;
           })
           .join("\n")
       : "";
 
     const difficultTopicsContext = topicAnalysis?.difficult_topics 
-      ? "\n\n**ADDITIONAL FOCUS CONTEXT** (allocate extra time and multiple long sessions):\n" + 
+      ? "\n\n**ADDITIONAL FOCUS CONTEXT** (allocate extra time and multiple sessions):\n" + 
         topicAnalysis.difficult_topics
-          .map((dt: any) => `${dt.topic_name}: ${dt.reason}\nStudy Suggestion: ${dt.study_suggestion}\n  → These need longer sessions (60-90 mins each)`)
+          .map((dt: any) => `${dt.topic_name}: ${dt.reason}\nStudy Suggestion: ${dt.study_suggestion}\n  → These need sessions of ${focusSessionDuration} minutes each`)
           .join("\n")
       : "";
 
@@ -534,48 +538,55 @@ SCHEDULING STRATEGY:
 
     // Build STRICT time window context - this is the most critical constraint
     const enabledTimeSlots = preferences.day_time_slots.filter((slot: any) => slot.enabled);
+    
+    // Calculate the actual session and break durations to use
+    const actualSessionDuration = preferences.duration_mode === "fixed" 
+      ? preferences.session_duration 
+      : (timetableMode === "short-term-exam" ? 75 : timetableMode === "long-term-exam" ? 55 : 45);
+    const actualBreakDuration = preferences.duration_mode === "fixed"
+      ? preferences.break_duration
+      : (timetableMode === "short-term-exam" ? 8 : timetableMode === "long-term-exam" ? 12 : 15);
+    
+    // Get the first enabled slot for examples
+    const firstSlot = enabledTimeSlots[0] || { day: 'monday', startTime: '09:00', endTime: '17:00' };
+    
     const strictTimeWindowContext = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🕐 MANDATORY TIME WINDOWS - MUST FOLLOW EXACTLY 🕐
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
+🚨 ABSOLUTE RULE #1 - TIME WINDOWS (READ THIS FIRST!) 🚨
+🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
 
-⚠️ CRITICAL: Sessions can ONLY be scheduled within these EXACT time windows:
+YOU MUST ONLY SCHEDULE SESSIONS WITHIN THESE EXACT TIME WINDOWS:
 
 ${enabledTimeSlots.map((slot: any) => {
   const dayName = slot.day.charAt(0).toUpperCase() + slot.day.slice(1);
-  return `📅 ${dayName.toUpperCase()}: ${slot.startTime} to ${slot.endTime} ONLY
-   - First session MUST start at or after ${slot.startTime}
-   - Last session MUST END by ${slot.endTime}
-   - FILL THE ENTIRE WINDOW with sessions and breaks
-   - Window duration: calculate total available minutes and use them ALL`;
+  return `📅 ${dayName.toUpperCase()}: 
+   🟢 START TIME: ${slot.startTime} (first session MUST be at ${slot.startTime} or later)
+   🔴 END TIME: ${slot.endTime} (last session+duration MUST finish by ${slot.endTime})
+   ❌ NEVER before ${slot.startTime}
+   ❌ NEVER after ${slot.endTime}`;
 }).join('\n\n')}
 
-🚫 FORBIDDEN SCHEDULING - WILL CAUSE FAILURE:
-- ❌ NEVER start a session before the day's start time
-- ❌ NEVER schedule a session that ends after the day's end time  
-- ❌ If user says 16:00-23:00, first session is at 16:00, last ends by 23:00
-- ❌ DO NOT schedule sessions at 09:00 if user's window starts at 16:00!
-- ❌ Sessions outside these windows will be DELETED
+❌❌❌ FORBIDDEN - WILL BE DELETED ❌❌❌
+- Starting ANY session before ${firstSlot.startTime} on any enabled day
+- Having a session end after ${firstSlot.endTime}
+- Using times like 08:00, 08:30 when window starts at ${firstSlot.startTime}!
 
-✅ CORRECT SCHEDULING - FOLLOW THIS:
-- ✅ Check the START TIME for each day and begin sessions FROM THERE
-- ✅ Check the END TIME for each day and ensure last session ends BY THEN
-- ✅ Calculate: session_end_time = session_start_time + duration
-- ✅ Verify: session_end_time <= day's end time
+✅✅✅ CORRECT EXAMPLE FOR ${firstSlot.day.toUpperCase()} ✅✅✅
+The user's window is ${firstSlot.startTime}-${firstSlot.endTime}, so:
+- FIRST session starts at: ${firstSlot.startTime} ← USE THIS EXACT TIME!
+- Each session is: ${actualSessionDuration} minutes
+- Each break is: ${actualBreakDuration} minutes
+- Keep scheduling sessions + breaks until ${firstSlot.endTime}
 
-📋 TIME SLOT SUMMARY TABLE:
-${enabledTimeSlots.map((slot: any) => `| ${slot.day.toUpperCase().padEnd(10)} | Start: ${slot.startTime} | End: ${slot.endTime} |`).join('\n')}
+SAMPLE SCHEDULE FOR ${firstSlot.startTime}-${firstSlot.endTime}:
+  "${firstSlot.startTime}" → Session (${actualSessionDuration} mins)
+  Break (${actualBreakDuration} mins)
+  Next session...
+  ...continue until you reach ${firstSlot.endTime}...
 
-${enabledTimeSlots.length > 0 ? `
-🎯 EXAMPLE FOR ${enabledTimeSlots[0].day.toUpperCase()} (${enabledTimeSlots[0].startTime}-${enabledTimeSlots[0].endTime}):
-- ${enabledTimeSlots[0].startTime} - Session 1 (${preferences.session_duration} mins)
-- Add break (${preferences.break_duration} mins)
-- Next session starts after break
-- ... continue filling until ${enabledTimeSlots[0].endTime} ...
-- Final session must END at or before ${enabledTimeSlots[0].endTime}
-` : ''}
+🚨 IF YOU SCHEDULE A SESSION AT 08:00 OR BEFORE ${firstSlot.startTime}, IT WILL BE DELETED! 🚨
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
 `;
 
     const prompt = `You are an expert study planner for GCSE students. Create a personalized revision timetable with the following details:
@@ -1014,10 +1025,10 @@ Return a JSON object with the following structure:
 
 **IMPORTANT**: Add "mode": "${timetableMode || 'balanced'}" field to EVERY session in the schedule. This helps the UI display mode-specific styling and indicators.
 
-**PRACTICE SESSION EXAMPLE** (session 1 for a topic):
+**PRACTICE SESSION EXAMPLE** (session 1 for a topic - USING YOUR PREFERENCES):
 {
-  "time": "09:00",
-  "duration": ${timetableMode === "short-term-exam" ? "75" : timetableMode === "long-term-exam" ? "50" : "40"},
+  "time": "${firstSlot.startTime}",
+  "duration": ${actualSessionDuration},
   "subject": "Mathematics",
   "topic": "Quadratic Equations",
   "type": "practice",
@@ -1025,10 +1036,19 @@ Return a JSON object with the following structure:
   "mode": "${timetableMode || 'balanced'}"
 }
 
+**BREAK SESSION EXAMPLE** (USING YOUR PREFERENCES):
+{
+  "time": "CALCULATED_TIME_AFTER_SESSION",
+  "duration": ${actualBreakDuration},
+  "type": "break",
+  "notes": "Rest and recharge",
+  "mode": "${timetableMode || 'balanced'}"
+}
+
 **EXAM QUESTIONS SESSION EXAMPLE** (session 2 for a topic):
 {
-  "time": "10:15",
-  "duration": ${timetableMode === "short-term-exam" ? "80" : timetableMode === "long-term-exam" ? "55" : "35"},
+  "time": "CALCULATED_TIME_AFTER_BREAK",
+  "duration": ${actualSessionDuration},
   "subject": "Mathematics",
   "topic": "Quadratic Equations",
   "type": "exam_questions",
@@ -1036,30 +1056,10 @@ Return a JSON object with the following structure:
   "mode": "${timetableMode || 'balanced'}"
 }
 
-**REVISION NOTES SESSION EXAMPLE** (first session for non-maths subjects):
-{
-  "time": "11:15",
-  "duration": ${timetableMode === "short-term-exam" ? "70" : timetableMode === "long-term-exam" ? "45" : "35"},
-  "subject": "Biology",
-  "topic": "Cell Structure",
-  "type": "revision",
-  "notes": "Read and summarize revision notes on cell structure - Use SaveMyExams notes",
-  "mode": "${timetableMode || 'balanced'}"
-}
-
-**BREAK SESSION EXAMPLE**:
-{
-  "time": "12:00",
-  "duration": ${timetableMode === "short-term-exam" ? "8" : timetableMode === "long-term-exam" ? "12" : "18"},
-  "type": "break",
-  "notes": "Rest and recharge",
-  "mode": "${timetableMode || 'balanced'}"
-}
-
 **HOMEWORK SESSION EXAMPLE** (use this format):
 If homework is due on 2025-11-25, schedule it on 2025-11-23 or 2025-11-24:
 {
-  "time": "14:00",
+  "time": "${firstSlot.startTime}",
   "duration": 60,
   "subject": "Mathematics",
   "topic": "Complete Chapter 5 exercises",
@@ -1070,13 +1070,22 @@ If homework is due on 2025-11-25, schedule it on 2025-11-23 or 2025-11-24:
 }
 NOTE: This example shows the session on a date BEFORE 2025-11-25, NOT on 2025-11-25 itself.
 
-**FINAL REMINDER**: 
-1. DO NOT forget to schedule homework! Every homework assignment in the list MUST appear in the timetable as a dedicated session BEFORE its due date
-2. Count them: if there are 3 homework assignments, there must be 3 homework sessions in your schedule
-3. VERIFY: NO homework session should be scheduled ON its due date - all must be scheduled at least 1 day before
-4. IMPLEMENT TWO-SESSION STRUCTURE: Most topics should have 2 sessions (Practice + Exam Questions), except first topic in non-maths subjects (Revision Notes + Exam Questions)
-5. RESOURCE RECOMMENDATIONS: Every session MUST include specific resource recommendations in the notes field (Dr Frost Maths, Revisely, SaveMyExams, PMT, Study Mind, etc.)
-6. HIGH PRIORITY TOPICS: These need 3-4+ sessions with mix of practice and exam questions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 FINAL VERIFICATION CHECKLIST - CHECK BEFORE RESPONDING 📋
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ TIME WINDOWS: First session starts at ${firstSlot.startTime} (NOT 08:00 or earlier!)
+✓ TIME WINDOWS: Last session ends by ${firstSlot.endTime}
+✓ SESSION DURATION: ${preferences.duration_mode === "fixed" ? `ALL sessions are EXACTLY ${preferences.session_duration} minutes (FIXED MODE)` : `Sessions vary intelligently: ${actualSessionDuration} mins typical`}
+✓ BREAK DURATION: ${preferences.duration_mode === "fixed" ? `ALL breaks are EXACTLY ${preferences.break_duration} minutes (FIXED MODE)` : `Breaks are ${actualBreakDuration} minutes`}
+✓ HOMEWORK: ALL homework scheduled BEFORE due date, NEVER on due date
+✓ FOCUS TOPICS: High priority topics get 4-6 sessions each
+
+⚠️ CRITICAL REMINDERS:
+1. Start time is ${firstSlot.startTime} - DO NOT use 08:00 or any time before this!
+2. Every session must be ${actualSessionDuration} minutes long
+3. Every break must be ${actualBreakDuration} minutes long
+4. The AI will verify these requirements - incorrect sessions will be DELETED
 
 Make the schedule practical, achievable, and effective for GCSE exam preparation.`;
 
