@@ -372,31 +372,6 @@ const Header = ({ onNewTimetable }: HeaderProps) => {
           {/* Right Side Actions */}
           <div className="flex items-center gap-2">
 
-            {/* Tutorial Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleTutorialClick}
-              className="hidden xl:flex gap-1.5 hover:bg-gradient-primary/10 hover:text-primary transition-all"
-              title="Start Guided Tour"
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
-
-            {/* Theme Toggle - Desktop only */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="hidden xl:flex gap-1.5 hover:bg-primary/10 transition-all"
-            >
-              {theme === "light" ? (
-                <Moon className="h-4 w-4" />
-              ) : (
-                <Sun className="h-4 w-4" />
-              )}
-            </Button>
-
             {/* New Timetable Button - Desktop only */}
             {onNewTimetable && (
               <Button

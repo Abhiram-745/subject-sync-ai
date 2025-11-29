@@ -123,14 +123,13 @@ serve(async (req) => {
     );
 
     // Fetch homework - exclude homework due on or before tomorrow's date
-    // Convert validTomorrowDate to end of day to properly filter
     const tomorrowEndOfDay = `${validTomorrowDate}T23:59:59`;
     const { data: homeworkList } = await supabase
       .from('homeworks')
       .select('*')
       .eq('user_id', user.id)
       .eq('completed', false)
-      .gt('due_date', tomorrowEndOfDay); // Only homework due AFTER tomorrow (next day or later)
+      .gt('due_date', tomorrowEndOfDay);
 
     const tomorrowDayOfWeek = targetDateObj.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     
@@ -380,28 +379,26 @@ Return ONLY valid JSON:
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
-    if (!OPEN_ROUTER_API_KEY) {
-      throw new Error("OPEN_ROUTER_API_KEY not configured in Supabase secrets");
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    let openaiResult;
+    let aiResult;
     try {
       const response = await fetch(
-        'https://openrouter.ai/api/v1/chat/completions',
+        'https://ai.gateway.lovable.dev/v1/chat/completions',
         {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
-            "HTTP-Referer": "https://vistari.app"
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "google/gemma-3n-e4b-it:free",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "user", content: `You are an expert study scheduling assistant. Create realistic, balanced schedules that respect student preferences and time constraints. Always return valid JSON.\n\n${prompt}` }
             ],
-            max_tokens: 4096,
           }),
           signal: controller.signal,
         }
@@ -409,11 +406,25 @@ Return ONLY valid JSON:
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("OpenAI API error:", response.status, errorText);
-        throw new Error(`OpenAI API request failed: ${response.status}`);
+        console.error("AI gateway error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error(`AI gateway request failed: ${response.status}`);
       }
 
-      openaiResult = await response.json();
+      aiResult = await response.json();
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
@@ -424,16 +435,16 @@ Return ONLY valid JSON:
 
     clearTimeout(timeoutId);
 
-    console.log('OpenAI response:', JSON.stringify(openaiResult, null, 2));
+    console.log('AI response:', JSON.stringify(aiResult, null, 2));
 
-    // Extract content from OpenAI response
+    // Extract content from AI response
     let responseText: string | undefined;
-    if (openaiResult.choices?.[0]?.message?.content) {
-      responseText = openaiResult.choices[0].message.content;
+    if (aiResult.choices?.[0]?.message?.content) {
+      responseText = aiResult.choices[0].message.content;
     }
 
     if (!responseText || responseText.trim() === "") {
-      console.error('Empty AI response. Raw result:', JSON.stringify(openaiResult, null, 2));
+      console.error('Empty AI response. Raw result:', JSON.stringify(aiResult, null, 2));
       throw new Error('AI did not generate a response. Please try again.');
     }
 
@@ -443,11 +454,11 @@ Return ONLY valid JSON:
       responseText = jsonMatch[1];
     }
 
-    const aiResult = JSON.parse(responseText);
-    console.log('AI generated schedule:', aiResult);
+    const aiResultParsed = JSON.parse(responseText);
+    console.log('AI generated schedule:', aiResultParsed);
 
     // Validate and clean the schedule
-    const validatedSchedule = (aiResult.schedule || []).map((session: any) => {
+    const validatedSchedule = (aiResultParsed.schedule || []).map((session: any) => {
       const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
       let sessionTime = session.time || '09:00';
       
@@ -495,8 +506,8 @@ Return ONLY valid JSON:
     return new Response(JSON.stringify({
       success: true,
       schedule: validatedSchedule,
-      summary: aiResult.summary || 'Schedule generated successfully',
-      reasoning: aiResult.reasoning,
+      summary: aiResultParsed.summary || 'Schedule generated successfully',
+      reasoning: aiResultParsed.reasoning,
       tomorrowDate: validTomorrowDate
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

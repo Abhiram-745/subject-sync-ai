@@ -66,47 +66,59 @@ Be constructive, specific, and focused on GCSE exam success. Return ONLY valid J
 
     const systemPrompt = "You are an expert GCSE tutor analyzing student test performance. Provide specific, actionable feedback. Always return valid JSON.";
 
-    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
-    if (!OPEN_ROUTER_API_KEY) {
-      throw new Error("OPEN_ROUTER_API_KEY not configured in Supabase secrets");
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
     const response = await fetch(
-      'https://openrouter.ai/api/v1/chat/completions',
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
       {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
-          "HTTP-Referer": "https://vistari.app"
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemma-3n-e4b-it:free",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "user", content: `${systemPrompt}\n\n${prompt}` }
           ],
-          max_tokens: 2048,
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
-      throw new Error(`OpenAI API request failed: ${response.status}`);
+      console.error("AI gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      throw new Error(`AI gateway request failed: ${response.status}`);
     }
 
-    const openaiResult = await response.json();
-    console.log("OpenAI response:", JSON.stringify(openaiResult, null, 2));
+    const aiResult = await response.json();
+    console.log("AI response:", JSON.stringify(aiResult, null, 2));
 
-    // Extract content from OpenAI response
+    // Extract content from AI response
     let responseText: string | undefined;
-    if (openaiResult.choices?.[0]?.message?.content) {
-      responseText = openaiResult.choices[0].message.content;
+    if (aiResult.choices?.[0]?.message?.content) {
+      responseText = aiResult.choices[0].message.content;
     }
 
     if (!responseText || responseText.trim() === "") {
-      console.error("Empty AI response. Raw result:", JSON.stringify(openaiResult, null, 2));
+      console.error("Empty AI response. Raw result:", JSON.stringify(aiResult, null, 2));
       throw new Error("AI did not generate a response. Please try again.");
     }
 

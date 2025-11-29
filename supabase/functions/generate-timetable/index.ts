@@ -371,131 +371,109 @@ ${events.map((evt: any) => {
   const durationMins = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
   return `⛔ BLOCKED TIME: ${evt.title}
    📅 Date: ${startDate.toLocaleDateString()}
-   ⏰ Time: ${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} → ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-   ⏱️  Duration: ${durationMins} minutes BLOCKED
-   ${evt.description ? `📝 ${evt.description}` : ''}
-   🚫 DO NOT CREATE ANY STUDY SESSIONS DURING THIS TIME
-   ⚠️  SKIP FROM ${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} TO ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+   🕐 Start: ${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+   🕐 End: ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+   ⏱️ Duration: ${durationMins} minutes
+   ❌ DO NOT SCHEDULE STUDY DURING THIS TIME
+   ❌ DO NOT ADD "${evt.title}" AS A SESSION - IT'S ALREADY AN EVENT`;
 }).join('\n\n')}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ CRITICAL EVENT BLOCKING RULES ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**CRITICAL EVENT BLOCKING RULES - MUST FOLLOW EXACTLY:**
+1. The ENTIRE duration of each event is unavailable
+2. DO NOT schedule any sessions that overlap with these times
+3. If an event ends at 21:00, the earliest next session is 21:00
+4. If an event starts at 18:00, the latest session before must END by 18:00
+5. Schedule AROUND events - either before they start or after they end
+6. NEVER add event names (like "Badminton", "Football", etc.) as study sessions!
+7. Events are ONLY for blocking time - they are NOT study sessions!
 
-🚫 WHAT YOU MUST NOT DO:
-✗ DO NOT create study sessions with event names (e.g., "Badminton", "Football")
-✗ DO NOT schedule anything during blocked times
-✗ If event is 18:00-21:00 (180 mins), the ENTIRE 3-hour block is BLOCKED
-✗ You cannot schedule at 18:00, 18:15, 18:30, 19:00, 19:30, 20:00, 20:30, 20:45
-
-✓ WHAT YOU MUST DO:
-✓ ONLY schedule study sessions for TOPICS and HOMEWORK from the provided lists
-✓ Skip over event times completely - leave them empty in your schedule
-✓ Next available time slot after 18:00-21:00 event is 21:00 or later
-✓ Schedule work BEFORE event starts OR AFTER event ends
-✓ Events take ABSOLUTE PRIORITY over all study activities
-✓ **RESUME SCHEDULING AFTER EVENTS END**: After an event finishes, you MUST continue scheduling study sessions until the user's requested end time
-✓ Example: If event ends at 21:00 and user wants to study until 23:00, schedule 2 hours of work from 21:00-23:00
-✓ **FILL THE ENTIRE DAY**: Events create gaps, but you must fill the time BEFORE and AFTER events
-
+🔴 REMEMBER: Events = Time blocks you CANNOT use
+🔴 Events are NOT sessions to add - they BLOCK sessions!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `
       : "";
 
-    // Timetable mode context - adjust scheduling strategy based on mode
+    // Build mode-specific context
     const getModeContext = (mode: string | null | undefined) => {
       switch (mode) {
         case "short-term-exam":
           return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📚 TIMETABLE MODE: SHORT-TERM EXAM PREP (INTENSIVE) 🔥
+🔥 TIMETABLE MODE: SHORT-TERM EXAM PREP (INTENSIVE) 🔥
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 INTENSIVE EXAM FOCUS - CRUNCH TIME MODE
+USER HAS EXAM(S) WITHIN 1-4 WEEKS - INTENSIVE CRAMMING MODE
 
-MANDATORY SCHEDULING RULES (FLEXIBLE MODE):
-✓ Revision Session Duration: 60-90 minutes per topic (LONGER intensive sessions)
-✓ Break Duration: 5-10 minutes only (SHORT breaks to maximize study time)
-✓ Daily Sessions: 4-6 intensive study sessions per day
-✓ Repeat Frequency: Review SAME topics every 2-3 days (aggressive repetition)
-✓ Homework: ONLY schedule urgent homework within 2 days of due date
-✓ Revision Priority: Schedule 75% REVISION sessions, 25% homework max
-✓ Session Types: Heavy focus on EXAM QUESTIONS and PAST PAPERS
-✓ Topic Coverage: Focus on HIGH-PRIORITY exam topics, revisit frequently
+SCHEDULING STRATEGY:
+✓ PRIORITIZE exam subjects - they get 70-80% of study time
+✓ LONGER sessions for exam topics (60-90 minutes in flexible mode)
+✓ FREQUENT exam practice - schedule same topic every 2-3 days
+✓ INTENSIVE repetition - topics near test dates repeat daily in final week
+✓ SHORT breaks only (5-10 mins) to maximize study time
+✓ Homework ONLY if absolutely necessary - revision takes priority
 
-TIME ALLOCATION TARGETS:
-- 75% of daily time = Exam revision & practice
-- 25% of daily time = Critical homework only
-- Schedule MULTIPLE sessions per difficult topic each week
-- Prioritize topics appearing on upcoming exams
+SESSION ALLOCATION BY MODE:
+- Short-Term Exam subjects: 60-90 min sessions, every 2-3 days
+- Long-Term Exam subjects: 45-60 min sessions, every 3-5 days
+- No-Exam subjects: 30-45 min sessions, once a week (if time permits)
 
-EXAM PREP INTENSITY:
-- Each difficult topic should appear 3-4+ times before exam
-- Back-to-back study sessions are ACCEPTABLE (minimal breaks)
-- Focus on depth over breadth - master exam topics thoroughly
-- Daily exam question practice is MANDATORY
+PHILOSOPHY:
+"Maximum revision intensity for upcoming exams. Every session counts."
 
-⚡ THIS IS INTENSIVE EXAM MODE - MAXIMIZE REVISION TIME! ⚡
+🔥 INTENSIVE MODE - PRIORITIZE EXAM PREP! 🔥
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
         case "long-term-exam":
           return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 TIMETABLE MODE: LONG-TERM EXAM PREP (BALANCED) ⚖️
+⚖️ TIMETABLE MODE: LONG-TERM EXAM PREP (BALANCED) ⚖️
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 BALANCED APPROACH - STEADY PROGRESS MODE
+USER HAS EXAM(S) IN 5-8+ WEEKS - SUSTAINABLE PREPARATION MODE
 
-MANDATORY SCHEDULING RULES (FLEXIBLE MODE):
-✓ Revision Session Duration: 45-60 minutes per topic (MODERATE length sessions)
-✓ Break Duration: 10-15 minutes (REGULAR breaks for sustainability)
-✓ Daily Sessions: 3-4 balanced study sessions per day
-✓ Repeat Frequency: Review topics every 5-7 days (spaced repetition)
-✓ Homework: Schedule ALL homework assignments comfortably
-✓ Revision Priority: Schedule 50% REVISION, 50% HOMEWORK (equal split)
-✓ Session Types: Mix of practice, revision notes, and exam questions
-✓ Topic Coverage: Gradual, comprehensive coverage of all topics
+SCHEDULING STRATEGY:
+✓ BALANCED allocation between exam prep and general study
+✓ MODERATE session lengths (45-60 minutes in flexible mode)
+✓ SPACED repetition - review topics every 4-7 days
+✓ Include ALL subjects - even those without exams get some time
+✓ REGULAR breaks (10-15 mins) for sustainable studying
+✓ Homework scheduled normally alongside revision
 
-TIME ALLOCATION TARGETS:
-- 50% of daily time = Revision & exam practice
-- 50% of daily time = Homework assignments
-- Spread topics evenly across the timetable period
-- Allow adequate time for understanding and practice
+SESSION ALLOCATION BY MODE:
+- Long-Term Exam subjects: 45-60 min sessions, every 3-5 days
+- Short-Term Exam subjects: 60-75 min sessions, every 2-3 days (still higher priority)
+- No-Exam subjects: 30-45 min sessions, once a week
 
-STEADY LEARNING APPROACH:
-- Each topic revisited 2-3 times over the study period
-- Regular breaks prevent burnout
-- Mix difficult and easier topics throughout week
-- Build solid foundations with consistent daily work
+PHILOSOPHY:
+"Build strong foundations over time. Consistent effort beats cramming."
 
-⚖️ BALANCED MODE - SUSTAINABLE STUDY HABITS! ⚖️
+⚖️ BALANCED MODE - SUSTAINABLE LEARNING! ⚖️
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
         case "no-exam":
           return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📝 TIMETABLE MODE: NO EXAM FOCUS (GETTING AHEAD) 📚
+📝 TIMETABLE MODE: NO EXAM FOCUS (HOMEWORK-FIRST) 📝
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 GET AHEAD ON SUBJECTS - GENERAL LEARNING MODE
+USER HAS NO UPCOMING EXAMS - HOMEWORK & GETTING AHEAD MODE
 
-MANDATORY SCHEDULING RULES (FLEXIBLE MODE):
-✓ Priority Order: HOMEWORK FIRST, then general subject revision
-✓ Homework: Schedule ALL homework assignments (mandatory completion)
-✓ Revision Session Duration: 45-60 minutes per topic (STANDARD learning sessions)
-✓ Break Duration: 15 minutes (regular breaks)
-✓ Daily Sessions: 3-4 sessions per day
-✓ Repeat Frequency: Review topics every 7-10 days (general reinforcement)
-✓ Session Types: General revision notes, practice, understanding concepts
-✓ Topic Coverage: Broad coverage to get ahead - not exam-focused, just general learning
-✓ NO exam pressure: Focus on understanding and getting ahead at comfortable pace
+SCHEDULING STRATEGY:
+✓ HOMEWORK FIRST - complete all homework with full allocated time
+✓ Revision sessions are SHORT and LIGHT (~20 minutes only)
+✓ LONG relaxed breaks (15-20 mins) - no exam stress!
+✓ After homework: use spare time to get ahead on topics
+✓ Focus on understanding rather than memorization
+✓ Review topics at relaxed pace (once a week or less)
 
-TIME ALLOCATION STRATEGY:
-1. FIRST: Complete ALL homework assignments (these are mandatory)
-2. THEN: Use remaining available time for general subject revision
-3. Revision is about getting ahead on topics, not exam prep
-4. Study sessions focus on understanding concepts thoroughly
-5. No urgency - steady progress through subject material
+SESSION ALLOCATION:
+- Homework: FULL allocated duration (top priority)
+- Revision: ~20 minute light sessions only
+- Focus topics: 30-45 min sessions (if time permits after homework)
+- Breaks: 15-20 minutes (relaxed pace)
 
 BALANCED LEARNING APPROACH:
 - Homework always gets scheduled first (must be done)
@@ -699,112 +677,29 @@ ${peakHoursContext ? `
    - This is based on the user's actual past performance data and MUST be respected
    - Prioritize matching topic difficulty to optimal time windows for maximum effectiveness
 ` : ""}
-${events.length > 0 ? `
+1. **SCHEDULE ALL HOMEWORK FIRST**: Every single homework assignment in the list MUST have a session scheduled at least 1 day BEFORE its due date
+2. Fill ALL enabled study time slots on ALL enabled days
+3. Schedule sessions ONLY within the specified time windows for each day
+4. NEVER schedule during blocked event times - work AROUND events
+5. Include appropriate breaks between sessions (every 1.5-2 hours of study)
+6. ${preferences.duration_mode === "fixed" 
+   ? `ALL sessions must be EXACTLY ${preferences.session_duration} minutes, ALL breaks EXACTLY ${preferences.break_duration} minutes`
+   : "Vary session lengths based on task type and timetable mode as described above"}
+7. Cover ALL topics at least once
+8. Give SIGNIFICANTLY more time to focus/priority topics (4-6 sessions each)
+9. Stop scheduling a subject after its test date
+10. Balance subject distribution - don't cluster same subjects together
+
+**🚨 CRITICAL HOMEWORK VERIFICATION CHECKLIST 🚨**
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-0. **⛔ EVENT BLOCKING - ABSOLUTE PRIORITY ⛔**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
-   ⚠️  CRITICAL: Events listed above create COMPLETE TIME BLOCKS
-   
-   WHEN YOU SEE AN EVENT FROM 18:00 TO 21:00:
-   ✗ You CANNOT schedule anything at: 18:00, 18:15, 18:30, 18:45, 19:00, 19:15, 19:30, 19:45, 20:00, 20:15, 20:30, 20:45
-   ✓ The ENTIRE 180-minute duration from 18:00 to 21:00 is BLOCKED
-   ✓ Next available slot is 21:00 or after
-   
-   VERIFICATION STEP:
-   - Before scheduling any session, check if it overlaps with ANY event time
-   - If session would start during an event, SKIP that time completely
-   - If session would end during an event, SKIP that time completely
-   - Schedule ONLY in gaps between events
-   
-   Events are NOT negotiable. They have ABSOLUTE priority.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-` : ""}
-${testDates.length > 0 ? "0. **TEST DAYS ARE COMPLETELY BLOCKED**: DO NOT schedule ANY sessions on the dates listed in 'TEST DAY BLOCKING'. These entire days are unavailable for studying." : ""}
-1. **INCLUDE ALL TOPICS**: Every single topic listed in "ALL TOPICS TO COVER" MUST appear in the timetable at least once
-2. **TWO-SESSION STRUCTURE**: Where time allows, most topics should have 2 sessions (Practice + Exam Questions), except:
-   - First topic in non-maths subjects: Revision Notes + Exam Questions
-   - High priority topics: 3-4+ sessions (multiple practice and exam question sessions)
-   - Low priority/time-limited topics: May have just 1 combined session
-3. **RESOURCE RECOMMENDATIONS**: Every session MUST include appropriate resource recommendations in the notes field (e.g., "Practice using Dr Frost Maths", "Exam questions from PMT")
-4. **DURATION MODE COMPLIANCE**: ${preferences.duration_mode === "fixed" 
-  ? `FIXED MODE - ALL sessions MUST be EXACTLY ${preferences.session_duration} minutes and ALL breaks MUST be EXACTLY ${preferences.break_duration} minutes. NO EXCEPTIONS.`
-  : `FLEXIBLE MODE - Vary durations intelligently: homework (exact specified duration), focus topics (60-90 mins), regular topics (30-45 mins), breaks (10-15 mins)`}
-5. **FOCUS TOPICS GET SIGNIFICANTLY MORE TIME**: Topics listed in "FOCUS TOPICS" section need MUCH MORE study time:
-   - Schedule the EXACT number of sessions specified for each focus topic (typically 4-6 sessions per focus topic)
-   - Use a MIX of practice sessions and exam question sessions for these topics
-   ${preferences.duration_mode === "flexible" 
-     ? "- Each focus topic session should be LONGER (60-90 minutes)" 
-     : `- Each focus topic session uses the fixed ${preferences.session_duration} minute duration`}
-   - Distribute these sessions throughout the study period (not all on the same day)
-   - Space out focus topic sessions - don't cluster them all together
-6. **REGULAR TOPICS**: Topics NOT in the focus list get scheduled with fewer sessions (1-2 sessions each depending on time available)
-   ${preferences.duration_mode === "flexible" 
-     ? "- Each regular topic session: 30-45 minutes" 
-     : `- Each regular topic session: ${preferences.session_duration} minutes (fixed)`}
-7. **HOMEWORK DURATION**: ${preferences.duration_mode === "fixed" 
-  ? `Each homework session MUST use the fixed ${preferences.session_duration} minute duration. If homework needs more time, split it into multiple ${preferences.session_duration}-minute sessions across different days.`
-  : "Each homework session MUST use its exact specified duration (e.g., 150 mins, 60 mins, 30 mins). Large homework (>120 mins) can be split into multiple sessions if needed."}
-8. **TEST PREPARATION IS ABSOLUTE PRIORITY**: Subjects with upcoming tests MUST receive significantly more study sessions:
-   - Allocate 2-3x MORE sessions to test subjects compared to non-test subjects
-   - Schedule test subjects MORE FREQUENTLY (every 2-3 days)
-   - Use LONGER sessions for test subjects (60-90 mins in flexible mode)
-   - Focus heavily on EXAM QUESTIONS and PAST PAPERS for test subjects (70% of sessions)
-   - In final 7 days before test: DAILY sessions for that subject (intensive review)
-   - Schedule test subjects during PEAK STUDY HOURS when available
-9. DO NOT schedule any revision for a topic AFTER its test date has passed
-10. Prioritize revision for topics with upcoming test dates (schedule more sessions closer to the test)
-11. Include the test date in the notes field for sessions related to topics with tests
-12. MUST schedule study sessions ONLY within the specified time periods for each day
-12. Distribute sessions EVENLY across ALL enabled study days - do not skip any enabled day
-10. **HOMEWORK INTEGRATION (CRITICAL)**: 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🚨 HOMEWORK MUST BE COMPLETED BEFORE THE DUE DATE 🚨
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
-   - **MANDATORY**: EVERY homework assignment MUST appear in the timetable as dedicated "homework" type sessions
-   - Homework has HARD DEADLINES - it must be SUBMITTED/HANDED IN on the due date
-   - This means homework must be COMPLETED at least 1 day BEFORE the due date
-   - Scheduling homework ON the due date means it won't be ready for submission
-   
-    **🔴 ABSOLUTE DEADLINE RULE 🔴**
-    ✗ NEVER schedule homework ON its due date (it must be ready for submission then!)
-    ✗ Student cannot work on homework the same day it's due - it's too late
-    ✓ MUST schedule at least 1 FULL DAY before the due date (MINIMUM requirement)
-    ✓ IDEAL: Schedule homework 2-3 days BEFORE the due date for best results
-    ✓ URGENT: If homework is due very soon, schedule it ASAP (as early as possible)
-    
-    **HOMEWORK SUBMISSION TIMELINE**:
-    The due date is when homework must be SUBMITTED/HANDED IN (already completed).
-    Therefore, the work must be DONE BEFORE that date.
-    
-    SCHEDULING FORMULA (in order of preference):
-    1. ⭐ BEST PRACTICE: If homework due date = X, schedule on X-2 or X-3 (2-3 days before)
-    2. ✅ ACCEPTABLE: If time is tight, schedule on X-1 (1 day before due date)
-    3. 🚨 URGENT: If due very soon and no earlier slot available, schedule ASAP
-    4. ❌ NEVER: Schedule on X (the due date itself) - homework won't be ready!
-    
-    REAL EXAMPLES:
-    • Homework due 2025-01-15 → ⭐ BEST: 2025-01-13, ✅ OK: 2025-01-14, ❌ NEVER: 2025-01-15
-    • Homework due 2025-01-25 → ⭐ BEST: 2025-01-23, ✅ OK: 2025-01-24, ❌ NEVER: 2025-01-25
-    • Homework due tomorrow → 🚨 Schedule TODAY (as early as possible in the day)
-    • WRONG EXAMPLE: Homework due 2025-01-20 → Scheduled on 2025-01-20 ❌ (TOO LATE!)
-   
-   - **USE EXACT HOMEWORK DURATION**: The duration field MUST match the homework's specified duration (e.g., 150, 60, 30 mins)
-   - Break large homework (>120 mins) into 2-3 sessions across different days, each using portion of total duration
-   - Homework sessions MUST use type="homework" and include homeworkDueDate field
-   - Topic field should contain the homework title
-   - Subject field should match the homework subject
-   - Notes field should describe the homework (e.g., "Complete algebra homework - Due: YYYY-MM-DD")
-   
-    **VERIFICATION CHECKLIST**:
-    ✓ Number of homework sessions = EXACTLY the number of homework assignments provided above
-    ✓ ALL homework scheduled BEFORE (not on) due date - MINIMUM 1 day before, IDEAL 2-3 days before
-    ✓ ZERO homework sessions on their actual due dates (homework must be ready for submission)
-    ✓ URGENT homework (due very soon) scheduled ASAP even if not ideal timing
-    ✓ Front-load homework in the schedule (schedule earlier rather than later for safety)
-    ✓ If homework list says "X homework assignments", you MUST create EXACTLY X homework sessions
-    ✓ Each homework has enough time allocated BEFORE its due date to complete the work
+**VERIFICATION CHECKLIST**:
+✓ Number of homework sessions = EXACTLY the number of homework assignments provided above
+✓ ALL homework scheduled BEFORE (not on) due date - MINIMUM 1 day before, IDEAL 2-3 days before
+✓ ZERO homework sessions on their actual due dates (homework must be ready for submission)
+✓ URGENT homework (due very soon) scheduled ASAP even if not ideal timing
+✓ Front-load homework in the schedule (schedule earlier rather than later for safety)
+✓ If homework list says "X homework assignments", you MUST create EXACTLY X homework sessions
+✓ Each homework has enough time allocated BEFORE its due date to complete the work
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Create a detailed, balanced study schedule that:
@@ -999,79 +894,55 @@ Return a JSON object with the following structure:
   "mode": "${timetableMode || 'balanced'}"
 }
 
-**BREAK SESSION EXAMPLE**:
+**HOMEWORK SESSION EXAMPLE**:
 {
   "time": "12:00",
-  "duration": ${timetableMode === "short-term-exam" ? "8" : timetableMode === "long-term-exam" ? "12" : "18"},
-  "type": "break",
-  "notes": "Rest and recharge",
-  "mode": "${timetableMode || 'balanced'}"
-}
-
-**HOMEWORK SESSION EXAMPLE** (use this format):
-If homework is due on 2025-11-25, schedule it on 2025-11-23 or 2025-11-24:
-{
-  "time": "14:00",
-  "duration": 60,
-  "subject": "Mathematics",
-  "topic": "Complete Chapter 5 exercises",
+  "duration": 45,
+  "subject": "English",
+  "topic": "Essay on Romeo and Juliet",
   "type": "homework",
-  "notes": "Homework assignment - Complete all questions from Chapter 5 - Due: 2025-11-25",
-  "homeworkDueDate": "2025-11-25",
+  "notes": "Homework due 2024-01-15 - Complete essay draft",
+  "homeworkDueDate": "2024-01-15",
   "mode": "${timetableMode || 'balanced'}"
 }
-NOTE: This example shows the session on a date BEFORE 2025-11-25, NOT on 2025-11-25 itself.
 
-**FINAL REMINDER**: 
-1. DO NOT forget to schedule homework! Every homework assignment in the list MUST appear in the timetable as a dedicated session BEFORE its due date
-2. Count them: if there are 3 homework assignments, there must be 3 homework sessions in your schedule
-3. VERIFY: NO homework session should be scheduled ON its due date - all must be scheduled at least 1 day before
-4. IMPLEMENT TWO-SESSION STRUCTURE: Most topics should have 2 sessions (Practice + Exam Questions), except first topic in non-maths subjects (Revision Notes + Exam Questions)
-5. RESOURCE RECOMMENDATIONS: Every session MUST include specific resource recommendations in the notes field (Dr Frost Maths, Revisely, SaveMyExams, PMT, Study Mind, etc.)
-6. HIGH PRIORITY TOPICS: These need 3-4+ sessions with mix of practice and exam questions
+**BREAK SESSION EXAMPLE**:
+{
+  "time": "13:00",
+  "duration": ${preferences.duration_mode === "fixed" ? preferences.break_duration : timetableMode === "short-term-exam" ? "8" : timetableMode === "no-exam" ? "18" : "12"},
+  "subject": "Break",
+  "topic": "Break",
+  "type": "break",
+  "notes": "Rest and recharge - stay hydrated",
+  "mode": "${timetableMode || 'balanced'}"
+}`;
 
-Make the schedule practical, achievable, and effective for GCSE exam preparation.`;
+    console.log("Sending prompt to AI...");
 
-    // Validate date range isn't too long (max 4 weeks)
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysDiff > 28) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Date range too long. Maximum timetable length is 4 weeks. Please create a shorter timetable or split it into multiple timetables." 
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Add timeout to prevent hanging - increased for complex generation
+    // Send request to Lovable AI
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large timetables
 
-    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
-    if (!OPEN_ROUTER_API_KEY) {
-      throw new Error("OPEN_ROUTER_API_KEY not configured in Supabase secrets");
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
     let openaiResult;
     try {
       const response = await fetch(
-        'https://openrouter.ai/api/v1/chat/completions',
+        'https://ai.gateway.lovable.dev/v1/chat/completions',
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPEN_ROUTER_API_KEY}`,
-            "HTTP-Referer": "https://vistari.app"
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "google/gemma-3n-e4b-it:free",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "user", content: `INSTRUCTIONS: You are an expert educational planner specializing in GCSE revision strategies. Return ONLY valid JSON with no markdown formatting, no code fences, no additional text. Your response must start with { and end with }. CRITICAL: Ensure the JSON is complete with all closing braces and brackets.\n\nTASK:\n${prompt}` }
             ],
-            max_tokens: 8192,
           }),
           signal: controller.signal,
         }
@@ -1079,8 +950,22 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("OpenAI API error:", response.status, errorText);
-        throw new Error(`OpenAI API request failed: ${response.status}`);
+        console.error("AI gateway error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error(`AI gateway request failed: ${response.status}`);
       }
 
       openaiResult = await response.json();
@@ -1094,9 +979,9 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
       clearTimeout(timeoutId);
     }
 
-    console.log("OpenAI raw result:", JSON.stringify(openaiResult, null, 2));
+    console.log("AI raw result:", JSON.stringify(openaiResult, null, 2));
 
-    // Extract content from OpenAI response
+    // Extract content from AI response
     let aiResponse: string | undefined;
     
     if (openaiResult.choices?.[0]?.message?.content) {
@@ -1146,10 +1031,6 @@ Make the schedule practical, achievable, and effective for GCSE exam preparation
       }
 
       // CRITICAL: Validate schedule against events and topic/homework lists
-      // We REMOVE obvious hallucinations and event-type sessions, but we DO NOT
-      // delete sessions that simply overlap with events anymore. Instead we log
-      // overlaps so the UI still has a usable timetable even if the AI makes
-      // timing mistakes.
       if (events && events.length > 0 && scheduleData.schedule && typeof scheduleData.schedule === 'object') {
         console.log(`Validating schedule to remove hallucinated/event sessions and check overlaps with ${events.length} events`);
         

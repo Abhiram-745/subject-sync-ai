@@ -107,7 +107,7 @@ serve(async (req) => {
         JSON.stringify({
           isValid: false,
           isBanned: false,
-          reason: "This email isn't eligible for referral rewards. Disposable email addresses are not allowed for referrals.",
+          reason: "Disposable email addresses are not allowed.",
           confidence: 100,
           flags: ["disposable_domain"]
         }),
@@ -137,19 +137,18 @@ serve(async (req) => {
       confidence -= 25;
     }
 
-    // Use Open Router AI for deeper analysis if flags exist
-    const OPEN_ROUTER_API_KEY = Deno.env.get('OPEN_ROUTER_API_KEY');
-    if (flags.length > 0 && OPEN_ROUTER_API_KEY) {
+    // Use Lovable AI for deeper analysis if flags exist
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (flags.length > 0 && LOVABLE_API_KEY) {
       try {
-        const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${OPEN_ROUTER_API_KEY}`,
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://vistari.app"
           },
           body: JSON.stringify({
-            model: "google/gemma-3n-e4b-it:free",
+            model: "google/gemini-2.5-flash",
             messages: [
               {
                 role: "user",
@@ -199,7 +198,7 @@ Analyze this email: ${emailLower}`
         isBanned: false,
         reason: isValid 
           ? "Email appears legitimate" 
-          : "This email isn't eligible for referral rewards. The email appears suspicious or temporary.",
+          : "This email appears suspicious or temporary.",
         confidence,
         flags
       }),
