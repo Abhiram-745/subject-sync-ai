@@ -78,23 +78,23 @@ Do NOT include any explanation or commentary - ONLY the JSON.`;
       }
     }
 
-    // Using Bytez API with Gemini 2.5 Flash for image extraction
-    const BYTEZ_API_KEY = Deno.env.get('BYTEZ_API_KEY');
+    // Using Lovable AI Gateway with Gemini 2.5 Flash for image extraction
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    if (!BYTEZ_API_KEY) {
-      console.error("BYTEZ_API_KEY not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY not configured");
       throw new Error("AI service not configured. Please contact support.");
     }
 
-    console.log(`Calling Bytez API with ${messageContent.length} content parts (${images?.length || 0} images)`);
+    console.log(`Calling Lovable AI with ${messageContent.length} content parts (${images?.length || 0} images)`);
 
     const response = await fetch(
-      'https://api.bytez.com/models/v2/openai/v1/chat/completions',
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
       {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": BYTEZ_API_KEY
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
@@ -126,7 +126,7 @@ Do NOT include any explanation or commentary - ONLY the JSON.`;
     }
 
     const openaiResult = await response.json();
-    console.log('Bytez Gemini response:', JSON.stringify(openaiResult, null, 2));
+    console.log('Lovable AI response:', JSON.stringify(openaiResult, null, 2));
 
     // Extract content from response
     let responseText: string | undefined;
